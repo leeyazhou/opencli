@@ -18,6 +18,15 @@ pub struct AuditStats {
     pub by_tool_name: BTreeMap<String, usize>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct AuditGraphNode {
+    pub agent_id: String,
+    pub parent_agent_id: Option<String>,
+    pub role: Option<String>,
+    pub task: Option<String>,
+    pub success: Option<bool>,
+}
+
 pub fn read_records(
     config: &RuntimeConfig,
     limit: usize,
@@ -85,4 +94,122 @@ pub fn compute_stats(config: &RuntimeConfig) -> Result<AuditStats> {
         by_event_type,
         by_tool_name,
     })
+}
+
+pub fn compute_agent_graph(config: &RuntimeConfig) -> Result<Vec<AuditGraphNode>> {
+    let records = read_all_records(config, Some("subagent"), None)?;
+    let mut graph: BTreeMap<String, AuditGraphNode> = BTreeMap::new();
+
+    for record in records {
+        let Some(agent_id) = record
+            .payload
+            .get("agentId")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string)
+        else {
+            continue;
+        };
+
+        let node = graph.entry(agent_id.clone()).or_insert(AuditGraphNode {
+            agent_id,
+            parent_agent_id: record
+                .payload
+                .get("parentAgentId")
+                .and_then(|v| v.as_str())
+                .map(ToString::to_string),
+            role: record
+                .payload
+                .get("role")
+                .and_then(|v| v.as_str())
+                .map(ToString::to_string),
+            task: record
+                .payload
+                .get("task")
+                .and_then(|v| v.as_str())
+                .map(ToString::to_string),
+            success: None,
+        });
+
+        if record.event_type == "a2a_finish" {
+            node.success = record.payload.get("success").and_then(|v| v.as_bool());
+        }
+    }
+
+    Ok(graph.into_values().collect())
+}
+
+pub fn render_agent_graph(nodes: &[AuditGraphNode]) -> String {
+    if nodes.is_empty() {
+        return "No agent graph records found.".to_string();
+    }
+
+    let mut children: BTreeMap<Option<String>, Vec<&AuditGraphNode>> = BTreeMap::new();
+    for node in nodes {
+        children
+            .entry(node.parent_agent_id.clone())
+            .or_default()
+            .push(node);
+    }
+
+    for group in children.values_mut() {
+        group.sort_by(|a, b| a.agent_id.cmp(&b.agent_id));
+    }
+
+    let mut lines = Vec::new();
+    render_children(&children, None, 0, &mut lines);
+    lines.join("\n")
+}
+
+fn render_children(
+    children: &BTreeMap<Option<String>, Vec<&AuditGraphNode>>,
+    parent: Option<String>,
+    depth: usize,
+    lines: &mut Vec<String>,
+) {
+    if let Some(nodes) = children.get(&parent) {
+        for node in nodes {
+            let indent = "  ".repeat(depth);
+            let status = match node.success {
+                Some(true) => "ok",
+                Some(false) => "fail",
+                None => "unknown",
+            };
+            let role = node.role.as_deref().unwrap_or("unknown-role");
+            let task = node.task.as_deref().unwrap_or("unknown-task");
+            lines.push(format!(
+                "{indent}- {role} [{}] {task} ({status})",
+                node.agent_id
+            ));
+            render_children(children, Some(node.agent_id.clone()), depth + 1, lines);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{render_agent_graph, AuditGraphNode};
+
+    #[test]
+    fn renders_agent_graph_tree() {
+        let graph = vec![
+            AuditGraphNode {
+                agent_id: "parent".into(),
+                parent_agent_id: None,
+                role: Some("planner".into()),
+                task: Some("top level".into()),
+                success: Some(true),
+            },
+            AuditGraphNode {
+                agent_id: "child".into(),
+                parent_agent_id: Some("parent".into()),
+                role: Some("researcher".into()),
+                task: Some("child task".into()),
+                success: Some(false),
+            },
+        ];
+
+        let rendered = render_agent_graph(&graph);
+        assert!(rendered.contains("planner [parent] top level (ok)"));
+        assert!(rendered.contains("researcher [child] child task (fail)"));
+    }
 }

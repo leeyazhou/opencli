@@ -34,3 +34,10 @@ fn a2a_batch_help_smoke() {
     cmd.arg("a2a-batch").arg("--help");
     cmd.assert().success();
 }
+
+#[test]
+fn audit_graph_help_smoke() {
+    let mut cmd = Command::cargo_bin("ai-cli").unwrap();
+    cmd.arg("audit").arg("graph").arg("--help");
+    cmd.assert().success();
+}

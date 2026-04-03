@@ -103,6 +103,7 @@ pub enum AuditCommands {
     List(AuditListArgs),
     Tail(AuditTailArgs),
     Stats,
+    Graph,
     Clear,
     Export(AuditExportArgs),
 }

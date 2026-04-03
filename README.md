@@ -134,6 +134,7 @@ cargo run -- config doctor
 cargo run -- audit list --limit 20
 cargo run -- audit tail --lines 20 --follow
 cargo run -- audit stats
+cargo run -- audit graph
 cargo run -- audit export --output /tmp/audit.json
 cargo run -- audit clear
 cargo run -- run --file src/main.rs "Explain this file"
@@ -254,9 +255,12 @@ cargo run -- audit list --tool run_shell
 cargo run -- audit list --event tool_finish
 cargo run -- audit tail --lines 20 --follow
 cargo run -- audit stats
+cargo run -- audit graph
 cargo run -- audit export --output /tmp/audit.json
 cargo run -- audit clear
 ```
+
+`audit graph` prints a readable agent delegation tree based on recorded A2A events.
 
 ## Session Management
 

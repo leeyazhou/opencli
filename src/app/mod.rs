@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     a2a::{SubAgentRequest, run_subagent, run_subagents_concurrent},
     agent::{run_agent_loop, run_streaming_text},
-    audit::{clear_records, compute_stats, export_records, read_all_records, read_records},
+    audit::{clear_records, compute_agent_graph, compute_stats, export_records, read_all_records, read_records, render_agent_graph},
     cli::{A2aArgs, A2aBatchArgs, AuditExportArgs, AuditListArgs, AuditTailArgs, Cli, ConfigCommands},
     config::{self, ensure_default_config},
     context,
@@ -220,6 +220,12 @@ impl App {
     pub fn run_audit_stats(&mut self) -> Result<()> {
         let stats = compute_stats(&self.runtime.config)?;
         self.runtime.renderer.render_line(&serde_json::to_string_pretty(&stats)?)?;
+        Ok(())
+    }
+
+    pub fn run_audit_graph(&mut self) -> Result<()> {
+        let graph = compute_agent_graph(&self.runtime.config)?;
+        self.runtime.renderer.render_line(&render_agent_graph(&graph))?;
         Ok(())
     }
 

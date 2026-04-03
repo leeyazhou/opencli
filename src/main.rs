@@ -85,6 +85,9 @@ async fn run() -> Result<()> {
             command: AuditCommands::Stats,
         }) => app.run_audit_stats(),
         Some(Commands::Audit {
+            command: AuditCommands::Graph,
+        }) => app.run_audit_graph(),
+        Some(Commands::Audit {
             command: AuditCommands::Clear,
         }) => app.run_audit_clear(),
         Some(Commands::Audit {

@@ -1,0 +1,12 @@
+# Fixture Title
+
+> quoted line
+
+- item one
+- item two
+```
+# language: rust
+fn main() {
+    println!("hello");
+}
+```

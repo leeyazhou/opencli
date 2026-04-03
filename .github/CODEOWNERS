@@ -1,0 +1,17 @@
+# Default ownership
+* @example-owner
+
+# Core runtime and provider code
+/src/provider.rs @example-owner
+/src/provider_factory.rs @example-owner
+/src/runtime.rs @example-owner
+
+# Tooling and safety
+/src/tools.rs @example-owner
+/src/approval.rs @example-owner
+/src/audit.rs @example-owner
+/src/safety.rs @example-owner
+
+# CI and release automation
+/.github/workflows/ @example-owner
+/scripts/ @example-owner

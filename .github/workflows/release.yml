@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            binary: ai-cli
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: tar.gz
+            binary: ai-cli
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            binary: ai-cli.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package unix archive
+        if: matrix.archive == 'tar.gz'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/
+          tar -czf ai-cli-${{ github.ref_name }}-${{ matrix.target }}.tar.gz -C dist ${{ matrix.binary }}
+      - name: Package windows archive
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/${{ matrix.target }}/release/${{ matrix.binary }} dist/${{ matrix.binary }}
+          Compress-Archive -Path dist/${{ matrix.binary }} -DestinationPath ai-cli-${{ github.ref_name }}-${{ matrix.target }}.zip
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ai-cli-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}

@@ -3,6 +3,7 @@ use std::sync::{
     atomic::AtomicBool,
     mpsc::{self},
 };
+use std::time::Instant;
 
 use opencli_config::RuntimeConfig;
 use opencli_session::StoredSession;
@@ -17,6 +18,7 @@ pub fn spawn_response_task(
     let (sender, receiver) = mpsc::channel();
     let cancel_requested = Arc::new(AtomicBool::new(false));
     let cancel_requested_for_thread = Arc::clone(&cancel_requested);
+    let preview = prompt_preview(&prompt);
 
     std::thread::spawn(move || {
         let runtime = match tokio::runtime::Builder::new_current_thread()
@@ -42,6 +44,8 @@ pub fn spawn_response_task(
     super::state::PendingTask {
         receiver,
         cancel_requested,
+        started_at: Instant::now(),
+        prompt_preview: preview,
     }
 }
 
@@ -53,6 +57,8 @@ pub fn poll_background(state: &mut super::state::TuiState) {
                 if !output.is_empty() {
                     state.lines.push(output);
                 }
+                state.completed_turns += 1;
+                state.last_event = format!("completed {}", pending.prompt_preview);
                 state.scroll_from_bottom = 0;
                 state.cancel_pending_task = false;
                 state.pending = None;
@@ -60,6 +66,9 @@ pub fn poll_background(state: &mut super::state::TuiState) {
             Ok(Err(error)) => {
                 if !format!("{error:#}").contains("agent execution canceled") {
                     state.lines.push(format!("Error: {error:#}"));
+                    state.last_event = format!("failed {}", pending.prompt_preview);
+                } else {
+                    state.last_event = format!("canceled {}", pending.prompt_preview);
                 }
                 state.scroll_from_bottom = 0;
                 state.cancel_pending_task = false;
@@ -69,6 +78,7 @@ pub fn poll_background(state: &mut super::state::TuiState) {
                 state
                     .lines
                     .push("Error: background response task disconnected".to_string());
+                state.last_event = "background task disconnected".to_string();
                 state.scroll_from_bottom = 0;
                 state.cancel_pending_task = false;
                 state.pending = None;
@@ -76,4 +86,13 @@ pub fn poll_background(state: &mut super::state::TuiState) {
             Err(mpsc::TryRecvError::Empty) => {}
         }
     }
+}
+
+fn prompt_preview(prompt: &str) -> String {
+    let single_line = prompt.replace('\n', " ");
+    let mut preview = single_line.chars().take(24).collect::<String>();
+    if single_line.chars().count() > 24 {
+        preview.push_str("...");
+    }
+    preview
 }

@@ -28,7 +28,7 @@ pub fn render_markdown_tui(blocks: &[String]) -> Text<'static> {
                 Line::from(Span::styled(
                     format!("# {rest}"),
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(Color::LightCyan)
                         .add_modifier(Modifier::BOLD),
                 ))
             } else if let Some(rest) = line.strip_prefix("## ") {
@@ -42,18 +42,20 @@ pub fn render_markdown_tui(blocks: &[String]) -> Text<'static> {
                 Line::from(Span::styled(
                     format!("### {rest}"),
                     Style::default()
-                        .fg(Color::Blue)
+                        .fg(Color::LightBlue)
                         .add_modifier(Modifier::BOLD),
                 ))
             } else if line.starts_with('>') {
                 Line::from(Span::styled(
                     line.to_string(),
-                    Style::default().fg(Color::Green),
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::ITALIC),
                 ))
             } else if line.starts_with("- ") || ordered_list_line(line) {
                 Line::from(Span::styled(
                     line.to_string(),
-                    Style::default().fg(Color::Magenta),
+                    Style::default().fg(Color::LightMagenta),
                 ))
             } else {
                 Line::from(line.to_string())

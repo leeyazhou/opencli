@@ -36,6 +36,7 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
             && let Some(prompt) = state.queued_prompts.pop_front()
         {
             state.lines.push(format!("> {prompt}"));
+            state.last_event = "running queued prompt".to_string();
             state.scroll_from_bottom = 0;
             state.pending = Some(spawn_response_task(
                 app.runtime_config().clone(),
@@ -87,21 +88,29 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                     state.scroll_from_bottom = 0;
                 }
                 KeyCode::Enter => {
-                    let prompt = state.input.trim().to_string();
-                    if !prompt.is_empty() {
-                        if state.pending.is_none() {
-                            state.lines.push(format!("> {prompt}"));
-                            state.scroll_from_bottom = 0;
-                            state.pending = Some(spawn_response_task(
-                                app.runtime_config().clone(),
-                                state.session.clone(),
-                                prompt,
-                            ));
-                        } else {
-                            state.queued_prompts.push_back(prompt);
+                    if key.modifiers.contains(KeyModifiers::SHIFT) {
+                        state.cancel_pending_task = false;
+                        state.input.push('\n');
+                    } else {
+                        let prompt = state.input.trim().to_string();
+                        if !prompt.is_empty() {
+                            if state.pending.is_none() {
+                                state.lines.push(format!("> {prompt}"));
+                                state.last_event = "running prompt".to_string();
+                                state.scroll_from_bottom = 0;
+                                state.pending = Some(spawn_response_task(
+                                    app.runtime_config().clone(),
+                                    state.session.clone(),
+                                    prompt,
+                                ));
+                            } else {
+                                state.queued_prompts.push_back(prompt);
+                                state.last_event =
+                                    format!("queued prompt {}", state.queued_prompts.len());
+                            }
                         }
+                        state.input.clear();
                     }
-                    state.input.clear();
                 }
                 KeyCode::Backspace => {
                     state.cancel_pending_task = false;

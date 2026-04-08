@@ -2,12 +2,12 @@
 
 ## 配置文件位置
 
-默认配置文件：`~/.config/ai-cli/config.json`
+默认配置文件：`~/.config/opencli/config.json`
 
 可以先执行下面的命令生成模板：
 
 ```bash
-ai-cli config init
+opencli config init
 ```
 
 ## 常用字段
@@ -86,8 +86,8 @@ ai-cli config init
   "approvalMode": "on-write",
   "nonInteractiveApproval": "deny",
   "workspaceRoot": ".",
-  "sessionDir": "~/.config/ai-cli/sessions",
-  "auditLogPath": "~/.config/ai-cli/audit.jsonl",
+  "sessionDir": "~/.config/opencli/sessions",
+  "auditLogPath": "~/.config/opencli/audit.jsonl",
   "requestTimeoutMs": 120000,
   "shellTimeoutMs": 120000,
   "agentMaxSteps": 8,

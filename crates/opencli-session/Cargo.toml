@@ -1,0 +1,17 @@
+[package]
+name = "opencli-session"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+opencli-config.workspace = true
+opencli-provider.workspace = true
+
+[lints]
+workspace = true

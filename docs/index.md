@@ -1,6 +1,6 @@
-# ai-cli 文档
+# opencli 文档
 
-`ai-cli` 是一个面向代码工作的 Rust CLI 工具，提供多模型接入、交互式对话、工具调用、审计日志、会话持久化，以及本地 agent-to-agent 协作能力。
+`opencli` 是一个面向代码工作的 Rust CLI 工具，提供多模型接入、交互式对话、工具调用、审计日志、会话持久化，以及本地 agent-to-agent 协作能力。
 
 这个 `docs/` 目录适合直接作为 GitHub Pages 的内容来源。
 

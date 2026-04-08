@@ -1,42 +1,51 @@
-[package]
-name = "ai-cli"
+[workspace]
+members = ["crates/opencli", "crates/opencli-core", "crates/opencli-provider", "crates/opencli-tools", "crates/opencli-config", "crates/opencli-audit", "crates/opencli-session", "crates/opencli-output"]
+default-members = ["crates/opencli"]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
 
-[features]
-default = ["anthropic", "tui"]
-anthropic = []
-tui = ["dep:crossterm", "dep:ratatui", "dep:unicode-width"]
-benchmarks = []
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
-[dependencies]
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+unwrap_used = "deny"
+
+[workspace.dependencies]
 anyhow = "1.0.98"
+assert_cmd = "2.0.17"
 async-trait = "0.1.89"
 bytes = "1.11.0"
 chrono = { version = "0.4.41", features = ["serde"] }
 clap = { version = "4.5.38", features = ["derive"] }
 clap_complete = "4.5.58"
-crossterm = { version = "0.29.0", optional = true }
+crossterm = "0.29.0"
+criterion = "0.5.1"
 dirs = "6.0.0"
 futures-util = "0.3.31"
 glob = "0.3.2"
+mockito = "1.7.0"
 pulldown-cmark = "0.13.0"
-ratatui = { version = "0.29.0", optional = true }
+ratatui = "0.29.0"
 reqwest = { version = "0.12.15", features = ["json", "rustls-tls"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
-unicode-width = { version = "0.2.0", optional = true }
+unicode-width = "0.2.0"
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
 wait-timeout = "0.2.1"
 
-[dev-dependencies]
-assert_cmd = "2.0.17"
-criterion = "0.5.1"
-mockito = "1.7.0"
-
-[[bench]]
-name = "markdown_render"
-harness = false
+opencli-audit = { path = "crates/opencli-audit" }
+opencli-config = { path = "crates/opencli-config" }
+opencli-core = { path = "crates/opencli-core", default-features = false }
+opencli-output = { path = "crates/opencli-output", default-features = false }
+opencli-provider = { path = "crates/opencli-provider", default-features = false }
+opencli-session = { path = "crates/opencli-session" }
+opencli-tools = { path = "crates/opencli-tools" }

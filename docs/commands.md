@@ -5,7 +5,7 @@
 直接传 prompt：
 
 ```bash
-ai-cli "Explain this repository"
+opencli "Explain this repository"
 ```
 
 如果在本地源码中运行，也可以使用：
@@ -21,7 +21,7 @@ cargo run -- "Explain this repository"
 启动交互式聊天模式。
 
 ```bash
-ai-cli chat
+opencli chat
 ```
 
 ### `tui`
@@ -29,7 +29,7 @@ ai-cli chat
 启动终端 UI 模式。该功能由 `tui` feature 提供，当前默认启用。
 
 ```bash
-ai-cli tui
+opencli tui
 ```
 
 ## 上下文运行
@@ -39,8 +39,8 @@ ai-cli tui
 为 prompt 注入指定文件或目录内容。
 
 ```bash
-ai-cli run --file src/main.rs "Explain this file"
-ai-cli run --dir src "Summarize this codebase"
+opencli run --file crates/opencli-core/src/lib.rs "Explain this file"
+opencli run --dir crates/opencli-core/src "Summarize this codebase"
 ```
 
 ## 模型与补全
@@ -50,7 +50,7 @@ ai-cli run --dir src "Summarize this codebase"
 列出可用模型。
 
 ```bash
-ai-cli models
+opencli models
 ```
 
 ### `completions`
@@ -58,9 +58,9 @@ ai-cli models
 生成 shell 补全脚本。
 
 ```bash
-ai-cli completions bash
-ai-cli completions zsh
-ai-cli completions fish
+opencli completions bash
+opencli completions zsh
+opencli completions fish
 ```
 
 ## 配置命令
@@ -78,7 +78,7 @@ ai-cli completions fish
 检查 API key、base URL、workspace 等基础配置问题。
 
 ```bash
-ai-cli config doctor
+opencli config doctor
 ```
 
 ## 会话命令
@@ -106,7 +106,7 @@ ai-cli config doctor
 查看最近的审计记录。
 
 ```bash
-ai-cli audit list --limit 20
+opencli audit list --limit 20
 ```
 
 ### `audit tail`
@@ -114,7 +114,7 @@ ai-cli audit list --limit 20
 实时追踪审计日志。
 
 ```bash
-ai-cli audit tail --lines 20 --follow
+opencli audit tail --lines 20 --follow
 ```
 
 ### `audit stats`
@@ -130,7 +130,7 @@ ai-cli audit tail --lines 20 --follow
 导出审计数据。
 
 ```bash
-ai-cli audit export --output /tmp/audit.json
+opencli audit export --output /tmp/audit.json
 ```
 
 ### `audit clear`
@@ -144,7 +144,7 @@ ai-cli audit export --output /tmp/audit.json
 把任务分配给一个本地子 agent。
 
 ```bash
-ai-cli a2a --role researcher "Summarize the project structure"
+opencli a2a --role researcher "Summarize the project structure"
 ```
 
 ### `a2a-batch`
@@ -152,5 +152,5 @@ ai-cli a2a --role researcher "Summarize the project structure"
 从任务文件中并发执行多个 delegation 任务。
 
 ```bash
-ai-cli a2a-batch --file tasks.json --concurrency 3
+opencli a2a-batch --file tasks.json --concurrency 3
 ```

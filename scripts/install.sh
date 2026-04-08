@@ -8,12 +8,12 @@ COMPLETION_DIR_BASE="${HOME}/.local/share"
 mkdir -p "$TARGET_DIR"
 
 cargo build --release --manifest-path "$ROOT_DIR/Cargo.toml"
-install "$ROOT_DIR/target/release/ai-cli" "$TARGET_DIR/ai-cli"
+install "$ROOT_DIR/target/release/opencli" "$TARGET_DIR/opencli"
 
 mkdir -p "$COMPLETION_DIR_BASE/bash-completion/completions" "$COMPLETION_DIR_BASE/zsh/site-functions" "$COMPLETION_DIR_BASE/fish/vendor_completions.d"
-"$ROOT_DIR/target/release/ai-cli" completions bash > "$COMPLETION_DIR_BASE/bash-completion/completions/ai-cli"
-"$ROOT_DIR/target/release/ai-cli" completions zsh > "$COMPLETION_DIR_BASE/zsh/site-functions/_ai-cli"
-"$ROOT_DIR/target/release/ai-cli" completions fish > "$COMPLETION_DIR_BASE/fish/vendor_completions.d/ai-cli.fish"
+"$ROOT_DIR/target/release/opencli" completions bash > "$COMPLETION_DIR_BASE/bash-completion/completions/opencli"
+"$ROOT_DIR/target/release/opencli" completions zsh > "$COMPLETION_DIR_BASE/zsh/site-functions/_opencli"
+"$ROOT_DIR/target/release/opencli" completions fish > "$COMPLETION_DIR_BASE/fish/vendor_completions.d/opencli.fish"
 
-printf 'Installed ai-cli to %s\n' "$TARGET_DIR/ai-cli"
+printf 'Installed opencli to %s\n' "$TARGET_DIR/opencli"
 printf 'Installed shell completions under %s\n' "$COMPLETION_DIR_BASE"

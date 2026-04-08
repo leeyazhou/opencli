@@ -8,7 +8,7 @@ The format is based on Keep a Changelog.
 
 ### Added
 
-- Rust-based `ai-cli` core with command dispatch through `clap`
+- Rust-based `opencli` core with command dispatch through `clap`
 - Provider abstraction plus `openai-compatible` and `anthropic` backends
 - Real SSE streaming text rendering for supported providers
 - Tool system with `read_file`, `list_dir`, `search_files`, and `run_shell`

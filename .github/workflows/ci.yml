@@ -5,7 +5,21 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
   test:
+    needs: lint
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -15,14 +29,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build --locked
+        run: cargo build --workspace --locked
       - name: Test
-        run: cargo test --locked
+        run: cargo test --workspace --locked
       - name: Build without default features
-        run: cargo build --locked --no-default-features
+        run: cargo build --workspace --locked --no-default-features
       - name: Test without default features
-        run: cargo test --locked --no-default-features
+        run: cargo test --workspace --locked --no-default-features
       - name: Test all features
-        run: cargo test --locked --all-features
+        run: cargo test --workspace --locked --all-features
       - name: Bench compile check
         run: cargo bench --locked --no-run

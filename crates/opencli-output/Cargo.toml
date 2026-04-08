@@ -1,0 +1,18 @@
+[package]
+name = "opencli-output"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+
+[features]
+default = ["tui"]
+tui = ["dep:ratatui"]
+
+[dependencies]
+anyhow.workspace = true
+opencli-provider.workspace = true
+pulldown-cmark.workspace = true
+ratatui = { workspace = true, optional = true }
+
+[lints]
+workspace = true

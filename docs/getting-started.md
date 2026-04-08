@@ -18,7 +18,7 @@ cargo build
 cargo run -- config init
 ```
 
-默认配置文件路径：`~/.config/ai-cli/config.json`
+默认配置文件路径：`~/.config/opencli/config.json`
 
 最小可用示例：
 
@@ -58,8 +58,8 @@ cargo run -- chat
 带上下文运行：
 
 ```bash
-cargo run -- run --file src/main.rs "Explain this file"
-cargo run -- run --dir src "Summarize this codebase"
+cargo run -- run --file crates/opencli-core/src/lib.rs "Explain this file"
+cargo run -- run --dir crates/opencli-core/src "Summarize this codebase"
 ```
 
 ## 常见本地安装方式

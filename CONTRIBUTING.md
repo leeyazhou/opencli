@@ -20,15 +20,16 @@
 
 ## Project Structure
 
-- `src/cli.rs`: CLI definitions
-- `src/app.rs`: command orchestration
-- `src/runtime.rs`: runtime dependency assembly
-- `src/provider.rs`: provider implementations
-- `src/tools.rs`: tool registry and tool logic
-- `src/session.rs`: session persistence
-- `src/audit.rs`: audit logging and queries
-- `src/approval.rs`: command approval policies
-- `src/tui.rs`: terminal UI flow
+- `crates/opencli/src/main.rs`: thin binary entrypoint
+- `crates/opencli/src/cli.rs`: CLI definitions
+- `crates/opencli-core/src/app/`: command orchestration
+- `crates/opencli-core/src/runtime/`: runtime dependency assembly
+- `crates/opencli-provider/src/provider/`: provider implementations
+- `crates/opencli-tools/src/`: generic tool registry and filesystem/shell tools
+- `crates/opencli-audit/src/`: audit logging and queries
+- `crates/opencli-session/src/`: session persistence
+- `crates/opencli-core/src/tools/`: core tool wrapper and delegation tools
+- `crates/opencli-core/src/tui/`: terminal UI flow
 
 ## Coding Guidelines
 
@@ -44,8 +45,8 @@
 
 ## Provider Changes
 
-- Keep provider-specific translation in `src/provider.rs`.
-- Route provider selection through `src/provider_factory.rs`.
+- Keep provider-specific translation in `crates/opencli-provider/src/provider/`.
+- Route provider selection through `crates/opencli-provider/src/provider_factory.rs`.
 - Preserve support for `openai-compatible` and `anthropic` unless intentionally changing scope.
 - Add serialization or behavior-focused tests for provider message changes.
 

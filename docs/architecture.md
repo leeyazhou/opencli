@@ -1,45 +1,32 @@
 # Architecture
 
-## Layers
+## Workspace Crates
 
-1. Interface layer
-- `cli`
-- `tui`
+1. Interface crates
+- `opencli`
 
-2. Application layer
-- `app`
+2. Orchestration crate
+- `opencli-core`
 
-3. Service layer
-- `services/config_doctor`
+3. Protocol and adapter crates
+- `opencli-provider`
+- `opencli-tools`
+- `opencli-output`
 
-4. Runtime assembly layer
-- `runtime`
-- `provider_factory`
-
-5. Adapter layer
-- `provider`
-- `tools`
-- `output`
-- `audit`
-
-6. Shared models
-- `message`
-- `session`
-
-7. Rendering layer
-- `markdown`
-- `output`
-- `tui/view`
+4. State and config crates
+- `opencli-config`
+- `opencli-audit`
+- `opencli-session`
 
 ## Execution Flow
 
-1. `main` parses CLI arguments
-2. `runtime` assembles dependencies
-3. `app` runs a use case
-4. `provider_factory` constructs the selected provider
-5. `agent` coordinates model/tool loops
-6. `output`/`markdown` render output
-7. `session`/`audit` persist state and trace history
+1. `opencli` parses CLI arguments
+2. `opencli-core::runtime` assembles dependencies
+3. `opencli-core::app` runs a use case
+4. `opencli-provider::ProviderFactory` constructs the selected provider
+5. `opencli-core::agent` coordinates model/tool loops
+6. `opencli-output` renders terminal and markdown output
+7. `opencli-session` and `opencli-audit` persist state and trace history
 
 ## Quality System
 

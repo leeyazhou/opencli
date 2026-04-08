@@ -5,10 +5,11 @@ It summarizes build/test commands, repository conventions, and implementation ex
 
 ## Scope
 
-- Repository: `ai-cli`
+- Repository: `opencli`
 - Language: Rust
 - Package manager/build tool: Cargo
-- Primary binary: `ai-cli`
+- Primary binary: `opencli`
+- Workspace members: `opencli`, `opencli-core`, `opencli-provider`, `opencli-tools`, `opencli-config`, `opencli-audit`, `opencli-session`, `opencli-output`
 - Runtime model: async CLI application using `tokio`
 
 ## Rule Files
@@ -62,15 +63,15 @@ Do not collapse these layers back together.
 - `main`: CLI entrypoint and command dispatch
 - `app`: use-case orchestration and interactive command flows
 - `runtime`: assembled dependencies for one app instance
-- `provider_factory`: provider selection and creation
+- `provider_factory`: provider selection and creation in `opencli-provider`
 - `provider`: provider trait and provider implementations (directory module)
 - `message`: shared chat message model
 - `output`: renderer abstraction
 - `tools`: tool trait, registry, policy checks, execution (directory module)
-- `approval`: approval strategy abstraction
+- `approval`: shell approval behavior enforced through `opencli-tools`
 - `audit`: audit sink and audit query helpers
 - `session`: session persistence
-- `safety`: path and command classification logic
+- `safety`: path and command classification logic in `opencli-tools`
 - `agent`: agent loop and autonomous execution logic
 - `context`: workspace context gathering and injection
 - `markdown`: terminal markdown rendering and formatting
@@ -80,41 +81,34 @@ Do not collapse these layers back together.
 
 Use this as a quick routing guide before making changes.
 
-- `src/main.rs`: process entrypoint, CLI parsing, top-level dispatch
-- `src/cli.rs`: clap command definitions and argument shapes
-- `src/app.rs`: application orchestration for commands and interactive flows
-- `src/runtime.rs`: constructs runtime dependencies from config
-- `src/config.rs`: config schema, defaults, env override merging, config file loading
-- `src/provider/`: provider trait and implementations (directory module)
+- `crates/opencli/src/main.rs`: thin binary entrypoint that initializes telemetry and calls `opencli-core`
+- `crates/opencli/src/cli.rs`: clap command definitions and argument shapes
+- `crates/opencli-core/src/app/`: application orchestration for commands and interactive flows
+- `crates/opencli-core/src/runtime/`: constructs runtime dependencies from config
+- `crates/opencli-config/src/lib.rs`: config schema, defaults, env override merging, config file loading
+- `crates/opencli-provider/src/provider/`: provider trait and implementations (directory module)
   - `mod.rs`: `Provider` trait definition and exports
   - `openai_compatible.rs`: OpenAI-compatible provider implementation
   - `anthropic.rs`: Anthropic provider implementation
   - `types.rs`: shared provider request/response types
   - `util.rs`: SSE parsing and provider utilities
-- `src/provider_factory.rs`: provider selection from config
-- `src/message.rs`: shared chat message model passed through providers/sessions/tools
-- `src/tools/`: tool trait, registry, policy enforcement, execution (directory module)
-  - `mod.rs`: `Tool` trait definition, exports, policy enforcement
-  - `registry.rs`: `ToolRegistry` construction and lookup
-  - `types.rs`: shared tool metadata and schema types
-  - `read_file.rs`: read_file tool implementation
-  - `list_dir.rs`: list_dir tool implementation
-  - `search_files.rs`: search_files tool implementation
-  - `run_shell.rs`: run_shell tool implementation
-- `src/approval.rs`: interactive and non-interactive shell approval behavior
-- `src/audit.rs`: audit log writes, reads, export, and clear helpers
-- `src/session.rs`: session persistence, lookup, rename, delete
-- `src/output.rs`: terminal rendering abstraction and default renderer
-- `src/agent.rs`: agent loop and autonomous execution logic
-- `src/context.rs`: workspace context gathering and injection
-- `src/markdown.rs`: terminal markdown rendering and formatting
-- `src/tui/`: terminal UI chat loop (directory module)
+- `crates/opencli-provider/src/provider_factory.rs`: provider selection from config
+- `crates/opencli-provider/src/message.rs`: shared chat message model passed through providers/sessions/tools
+- `crates/opencli-tools/src/`: generic tool trait, registry, policy enforcement, and filesystem/shell tool implementations
+- `crates/opencli-core/src/tools/`: core tool wrapper and A2A delegation tools
+- `crates/opencli-tools/src/safety.rs`: path validation and shell approval logic
+- `crates/opencli-audit/src/`: audit log writes, reads, export, and query helpers
+- `crates/opencli-session/src/`: session persistence, lookup, rename, delete
+- `crates/opencli-output/src/output/`: terminal rendering abstraction and default renderer
+- `crates/opencli-core/src/agent.rs`: agent loop and autonomous execution logic
+- `crates/opencli-core/src/context.rs`: workspace context gathering and injection
+- `crates/opencli-output/src/markdown/`: terminal markdown rendering and formatting
+- `crates/opencli-core/src/tui/`: terminal UI chat loop (directory module)
   - `mod.rs`: TUI main loop and event handling
   - `state.rs`: TUI state management
-- `src/safety.rs`: path normalization and command risk classification
-- `src/errors.rs`: stable exit code inference
-- `src/completions.rs`: shell completion generation
-- `tests/cli_smoke.rs`: basic CLI integration smoke tests
+- `crates/opencli-core/src/errors.rs`: stable exit code inference
+- `crates/opencli/src/completions.rs`: shell completion generation
+- `crates/opencli/tests/cli_smoke.rs`: basic CLI integration smoke tests
 - `scripts/install.sh`: Unix-like local install helper
 - `scripts/install.ps1`: Windows local install helper
 - `.github/workflows/ci.yml`: CI build and test workflow
@@ -124,8 +118,8 @@ Use this as a quick routing guide before making changes.
 
 - Prefer small changes inside the correct module instead of broad rewrites.
 - Extend traits and factories rather than branching in `main.rs` or `app.rs`.
-- New model backends should go through `provider::Provider` and `provider_factory`.
-- New tools should go through `tools::Tool` and `ToolRegistry`.
+- New model backends should go through `opencli-provider` and `provider_factory`.
+- New generic tools should go through `opencli-tools`; A2A delegation tools stay in `opencli-core/src/tools/`.
 - New rendering modes should go through `output::Renderer`.
 - Approval logic should stay in `approval`, not inside tool implementations.
 - Audit writes and queries should stay in `audit`, not inside app orchestration.
@@ -179,7 +173,7 @@ Use this as a quick routing guide before making changes.
 
 ## CLI Conventions
 
-- Add new commands in `src/cli.rs`.
+- Add new commands in `crates/opencli/src/cli.rs`.
 - Route command behavior through `app.rs`, not directly from `main.rs`.
 - Help text should be concise and user-facing.
 - If a command affects persisted state, ensure audit/session/config behavior remains coherent.
@@ -292,7 +286,7 @@ Items are grouped by priority. Resolve high-priority items before tagging the fi
     No performance benchmarks exist. For a CLI tool, consider benchmarking: config parsing, session serialization/deserialization, markdown rendering, and provider response parsing.
 
 20. **Stray `~/` directory in repository root.**
-    A literal tilde directory exists at the repo root containing `.config/ai-cli/audit.jsonl`. This is an accidental artifact from a development run. Remove it from the repository and add `~/` to `.gitignore`.
+   A literal tilde directory exists at the repo root containing `.config/opencli/audit.jsonl`. This is an accidental artifact from a development run. Remove it from the repository and add `~/` to `.gitignore`.
 
 21. **No pre-commit hook enforcement.**
     `CONTRIBUTING.md` recommends running `cargo fmt` and `cargo clippy` before committing, but this is not enforced. Consider adding a `.pre-commit-config.yaml` or `lefthook.yml` to automate these checks locally.

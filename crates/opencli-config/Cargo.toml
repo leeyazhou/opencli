@@ -1,0 +1,14 @@
+[package]
+name = "opencli-config"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+dirs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

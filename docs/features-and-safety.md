@@ -2,7 +2,7 @@
 
 ## 内置能力
 
-`ai-cli` 不只是把 prompt 发给模型，它还支持在本地工作区内执行受控工具调用。
+`opencli` 不只是把 prompt 发给模型，它还支持在本地工作区内执行受控工具调用。
 
 当前内置工具包括：
 
@@ -49,9 +49,9 @@ shell 命令超过 `shellTimeoutMs` 会被终止，请求本身则受 `requestTi
 常用命令：
 
 ```bash
-ai-cli audit list --limit 50
-ai-cli audit tail --lines 20 --follow
-ai-cli audit export --output /tmp/audit.json
+opencli audit list --limit 50
+opencli audit tail --lines 20 --follow
+opencli audit export --output /tmp/audit.json
 ```
 
 ## A2A 的边界

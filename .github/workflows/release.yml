@@ -13,15 +13,15 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
-            binary: ai-cli
+            binary: opencli
           - os: macos-latest
             target: x86_64-apple-darwin
             archive: tar.gz
-            binary: ai-cli
+            binary: opencli
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
-            binary: ai-cli.exe
+            binary: opencli.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -36,16 +36,16 @@ jobs:
         run: |
           mkdir -p dist
           cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/
-          tar -czf ai-cli-${{ github.ref_name }}-${{ matrix.target }}.tar.gz -C dist ${{ matrix.binary }}
+          tar -czf opencli-${{ github.ref_name }}-${{ matrix.target }}.tar.gz -C dist ${{ matrix.binary }}
       - name: Package windows archive
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item target/${{ matrix.target }}/release/${{ matrix.binary }} dist/${{ matrix.binary }}
-          Compress-Archive -Path dist/${{ matrix.binary }} -DestinationPath ai-cli-${{ github.ref_name }}-${{ matrix.target }}.zip
+          Compress-Archive -Path dist/${{ matrix.binary }} -DestinationPath opencli-${{ github.ref_name }}-${{ matrix.target }}.zip
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ai-cli-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}
+            opencli-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive }}

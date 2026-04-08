@@ -1,30 +1,29 @@
-# ai-cli
+# opencli
 
  Rust implementation of a code-focused AI CLI with multi-provider support.
 
-The codebase is organized around explicit boundaries:
+The codebase is organized as a Cargo workspace with explicit crate boundaries:
 
-- `app`: command orchestration and interactive flows
-- `runtime`: assembled dependencies for one app instance
-- `provider_factory`: provider selection and creation
-- `provider`: provider trait and OpenAI-compatible implementation
-- `message`: shared chat message model
-- `output`: terminal renderer abstraction
-- `tools`: tool trait, registry, and tool execution
-- `approval`: shell approval policy abstraction
-- `audit`: audit logging abstraction
-- `session`: persistence
-- `safety`: path and shell policies
+## Workspace Crates
+
+- `opencli`: CLI entrypoint, clap parsing, completions
+- `opencli-core`: app orchestration, runtime assembly, agent loop, TUI, A2A delegation
+- `opencli-provider`: provider traits, message model, provider implementations, provider factory
+- `opencli-tools`: generic tools, tool registry, path and shell safety policies
+- `opencli-config`: config loading, defaults, env overrides
+- `opencli-audit`: audit logging and queries
+- `opencli-session`: session persistence
+- `opencli-output`: terminal rendering and markdown rendering
 
 This structure is intended to keep future changes localized:
 
-- add a new model backend by implementing `provider::Provider`
-- change provider selection by extending `provider_factory`
-- add a new output mode by implementing `output::Renderer`
-- add a new built-in tool by implementing `tools::Tool`
-- change approval behavior by implementing `approval::Approval`
-- change audit sink by implementing `audit::AuditLogger`
-- assemble different runtime combinations in `runtime`
+- add a new model backend in `opencli-provider`
+- change provider selection by extending `opencli-provider::ProviderFactory`
+- add a new output mode in `opencli-output`
+- add a new generic built-in tool in `opencli-tools`
+- change shell approval behavior in `opencli-tools`
+- change audit sink in `opencli-audit`
+- assemble runtime behavior in `opencli-core::runtime`
 
 ## Features
 
@@ -36,7 +35,7 @@ This structure is intended to keep future changes localized:
 - Concurrent batch A2A delegation via `delegate_agents` and `a2a-batch`
 - `run --file/--dir` context injection
 - Local session save, list, and resume
-- JSON config at `~/.config/ai-cli/config.json`
+- JSON config at `~/.config/opencli/config.json`
 - Model-driven tool calls
 - Built-in tools: `read_file`, `list_dir`, `search_files`, `run_shell`
 - Shell approval modes with default `on-write`
@@ -85,7 +84,7 @@ cargo run -- completions fish
 cargo run -- config init
 ```
 
-Then edit `~/.config/ai-cli/config.json` and set `apiKey`, `baseUrl`, and `model`.
+Then edit `~/.config/opencli/config.json` and set `apiKey`, `baseUrl`, and `model`.
 
 Example config:
 
@@ -101,8 +100,8 @@ Example config:
   "approvalMode": "on-write",
   "nonInteractiveApproval": "deny",
   "workspaceRoot": ".",
-  "sessionDir": "~/.config/ai-cli/sessions",
-  "auditLogPath": "~/.config/ai-cli/audit.jsonl",
+  "sessionDir": "~/.config/opencli/sessions",
+  "auditLogPath": "~/.config/opencli/audit.jsonl",
   "requestTimeoutMs": 120000,
   "shellTimeoutMs": 120000,
   "agentMaxSteps": 8,
@@ -137,8 +136,8 @@ cargo run -- audit stats
 cargo run -- audit graph
 cargo run -- audit export --output /tmp/audit.json
 cargo run -- audit clear
-cargo run -- run --file src/main.rs "Explain this file"
-cargo run -- run --dir src "Summarize this codebase"
+cargo run -- run --file crates/opencli-core/src/lib.rs "Explain this file"
+cargo run -- run --dir crates/opencli-core/src "Summarize this codebase"
 cargo run -- session list
 cargo run -- session resume <session-id>
 cargo run -- session delete <session-id>
@@ -297,7 +296,7 @@ Controls:
 
 ## Exit Codes
 
-`ai-cli` returns stable non-zero exit codes for common failure classes:
+`opencli` returns stable non-zero exit codes for common failure classes:
 
 - `1`: generic failure
 - `2`: config error
@@ -389,6 +388,6 @@ The repository also includes:
 The project currently uses multiple test layers:
 
 - unit tests for core modules
-- CLI smoke tests in `tests/cli_smoke.rs`
-- fixture-based rendering tests in `tests/fixtures_*`
+- CLI smoke tests in `crates/opencli/tests/cli_smoke.rs`
+- fixture-based rendering tests in `crates/opencli/tests/fixtures_*`
 - mock-server provider integration tests in provider modules

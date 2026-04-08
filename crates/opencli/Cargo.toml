@@ -1,0 +1,32 @@
+[package]
+name = "opencli"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+
+[features]
+default = ["anthropic", "tui"]
+anthropic = ["opencli-core/anthropic"]
+tui = ["opencli-core/tui"]
+benchmarks = []
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+tokio.workspace = true
+opencli-config.workspace = true
+opencli-core.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+criterion.workspace = true
+mockito.workspace = true
+pulldown-cmark.workspace = true
+
+[[bench]]
+name = "markdown_render"
+harness = false
+
+[lints]
+workspace = true

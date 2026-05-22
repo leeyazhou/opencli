@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "OpenCLI Desktop - Agentic AI Coding Assistant",
   "author": "OpenCLI",
+  "email": "coderhook@gmail.com",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "ELECTRON_OVERRIDE_DIST_PATH=./node_modules/electron/dist electron-vite dev",
@@ -29,29 +30,63 @@
       {
         "from": "resources/${os}",
         "to": ".",
-        "filter": ["opencli*"]
+        "filter": [
+          "opencli*"
+        ]
       }
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] },
-        { "target": "zip", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "artifactName": "OpenCLI-${version}-mac-${arch}.${ext}"
     },
     "linux": {
       "category": "Development",
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "OpenCLI-${version}-linux-${arch}.${ext}"
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "zip", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "OpenCLI-${version}-win-${arch}.${ext}"
     },

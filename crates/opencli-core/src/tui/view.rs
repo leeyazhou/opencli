@@ -324,6 +324,13 @@ fn render_sidebar(state: &TuiState) -> Text<'static> {
             ),
         ]),
         Line::from(vec![
+            Span::styled("sys msgs ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                system_count.to_string(),
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]),
+        Line::from(vec![
             Span::styled("turns ", Style::default().fg(Color::DarkGray)),
             Span::styled(
                 state.completed_turns.to_string(),

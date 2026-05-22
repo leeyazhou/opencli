@@ -30,6 +30,7 @@ pub struct PendingTask {
 
 /// Structured chat message for the TUI conversation pane.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ChatMessage {
     /// A user prompt
     User(String),
@@ -49,6 +50,7 @@ pub enum ChatMessage {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ToolStatus {
     Pending,
     Running,

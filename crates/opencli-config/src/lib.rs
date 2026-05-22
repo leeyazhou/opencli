@@ -209,3 +209,63 @@ fn default_base_url(provider: &str) -> &'static str {
         _ => "https://api.openai.com/v1",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 测试 `expand_home` 是否能正确处理带波浪号 `~` 的家目录路径展开。
+    #[test]
+    fn test_expand_home() {
+        // 普通绝对路径应当原样保留，不进行任何家目录展开
+        let normal_path = "/usr/local/bin";
+        let res1 = expand_home(normal_path).unwrap();
+        assert_eq!(res1, PathBuf::from(normal_path));
+
+        // 带 `~/` 前缀的路径应当拼接当前用户的 Home 目录
+        let tilde_path = "~/test_workspace";
+        let res2 = expand_home(tilde_path).unwrap();
+        let home = dirs::home_dir().expect("未找到家目录");
+        assert_eq!(res2, home.join("test_workspace"));
+
+        // 单独的 `~` 应当直接展开为当前用户的 Home 目录
+        let single_tilde = "~";
+        let res3 = expand_home(single_tilde).unwrap();
+        assert_eq!(res3, home);
+    }
+
+    /// 测试 `redacted_config` 是否能正确对敏感信息（如 API Key）进行脱敏处理。
+    #[test]
+    fn test_redacted_config() {
+        let mut config = RuntimeConfig::default();
+
+        // 当 API Key 为空字符串时，脱敏后的 Value 应当也为空字符串
+        config.api_key = String::new();
+        let redacted_val = redacted_config(&config);
+        assert_eq!(redacted_val["apiKey"], "");
+
+        // 当 API Key 含有具体凭证时，脱敏后的 Value 应当被替换为掩码
+        config.api_key = "sk-proj-123456".to_string();
+        let redacted_val_masked = redacted_config(&config);
+        assert_eq!(redacted_val_masked["apiKey"], "***redacted***");
+    }
+
+    /// 测试 `load_config` 函数是否能正确处理默认值、Overrides 传参以及环境变量的优先级合并。
+    #[test]
+    fn test_load_config_with_overrides() {
+        // 创建带有 Overrides 参数的配置覆盖结构
+        let overrides = ConfigOverrides {
+            model: Some("custom-model-overridden".to_string()),
+            base_url: Some("https://custom.api.com/v2".to_string()),
+            api_key: Some("secret-key".to_string()),
+        };
+
+        // 执行配置加载
+        let config = load_config(overrides).unwrap();
+
+        // 验证 Overrides 传入的值是否成功覆盖了默认值
+        assert_eq!(config.model, "custom-model-overridden");
+        assert_eq!(config.base_url, "https://custom.api.com/v2");
+        assert_eq!(config.api_key, "secret-key");
+    }
+}

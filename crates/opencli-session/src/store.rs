@@ -54,7 +54,8 @@ pub fn list_sessions(config: &RuntimeConfig) -> Result<Vec<StoredSession>> {
         sessions.push(session);
     }
 
-    sessions.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    // 根据更新时间进行逆序排序（最新更新的排在最前）
+    sessions.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
     Ok(sessions)
 }
 

@@ -1,223 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 内容安全策略 (Content Security Policy)
+       - script-src 'self': 只允许同源脚本
+       - style-src 'self' 'unsafe-inline': 允许内联样式（Vue/TailwindCSS 动态注入所需）
+       - img-src 'self' data:: 允许同源图片及 base64 内嵌图
+       - connect-src 'self': 允许同源 fetch/websocket（Vite HMR）
+       注：开发模式下 Vite HMR 会触发 unsafe-eval 告警，这在打包后会自动消失
+  -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws://localhost:* http://localhost:*;" />
   <title>OpenCLI</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <!-- Ambient background layers -->
-  <div class="bg-layer bg-grid"></div>
-  <div class="bg-layer bg-gradient"></div>
-  <div class="bg-layer bg-particles" id="particles"></div>
-
-  <!-- App shell -->
-  <div class="app-shell">
-    <!-- Title bar -->
-    <header class="titlebar">
-      <span class="titlebar-logo">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <rect width="16" height="16" rx="4" fill="url(#logo-grad)"/>
-          <defs>
-            <linearGradient id="logo-grad" x1="0" y1="0" x2="16" y2="16">
-              <stop offset="0%" stop-color="#6366f1"/>
-              <stop offset="100%" stop-color="#06b6d4"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span class="titlebar-text">OpenCLI</span>
-      </span>
-      <span class="titlebar-status" id="agentStatus">
-        <span class="status-dot"></span>
-        <span class="status-label">agent</span>
-      </span>
-    </header>
-
-    <!-- Body: Activity Bar + Sidebar + Chat -->
-    <div class="app-body">
-      <!-- Activity Bar (VS Code-style icon rail) -->
-      <nav class="activity-bar" id="activityBar">
-        <div class="activity-bar-top">
-          <button class="activity-btn active" data-panel="sessions" title="Sessions">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-            </svg>
-            <span class="activity-badge" id="sessionBadge">1</span>
-          </button>
-          <button class="activity-btn" data-panel="project" title="Project">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-            </svg>
-          </button>
-        </div>
-        <div class="activity-bar-bottom">
-          <button class="activity-btn" data-panel="settings" title="Settings">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-            </svg>
-          </button>
-        </div>
-      </nav>
-
-      <!-- Sidebar (collapsible) -->
-      <aside class="sidebar" id="sidebar">
-        <!-- Sessions panel -->
-        <div class="sidebar-panel active" id="panelSessions">
-          <div class="sidebar-header">
-            <span class="sidebar-header-title">SESSIONS</span>
-            <div class="sidebar-header-actions">
-              <button class="sidebar-action-btn" id="newSessionBtn" title="New session">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="sidebar-content">
-            <div class="session-list" id="sessionList">
-              <div class="session-item active" data-session-id="current">
-                <div class="session-item-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                  </svg>
-                </div>
-                <div class="session-item-info">
-                  <span class="session-item-name">Current session</span>
-                  <span class="session-item-meta" id="sessionIdDisplay">--</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Project panel -->
-        <div class="sidebar-panel" id="panelProject">
-          <div class="sidebar-header">
-            <span class="sidebar-header-title">PROJECT</span>
-          </div>
-          <div class="sidebar-content">
-            <div class="project-info">
-              <div class="project-info-row">
-                <span class="project-info-label">Working dir</span>
-                <span class="project-info-value" id="projectCwd">--</span>
-              </div>
-              <div class="project-info-row">
-                <span class="project-info-label">Agent status</span>
-                <span class="project-info-value" id="projectAgentStatus">--</span>
-              </div>
-              <div class="project-info-row">
-                <span class="project-info-label">Messages</span>
-                <span class="project-info-value" id="projectMsgCount">0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Settings panel -->
-        <div class="sidebar-panel" id="panelSettings">
-          <div class="sidebar-header">
-            <span class="sidebar-header-title">SETTINGS</span>
-          </div>
-          <div class="sidebar-content">
-            <div class="settings-group">
-              <label class="settings-item">
-                <span class="settings-label">Theme</span>
-                <span class="settings-value">Dark</span>
-              </label>
-              <label class="settings-item">
-                <span class="settings-label">Font size</span>
-                <span class="settings-value">14px</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sidebar resize handle -->
-        <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
-      </aside>
-
-      <!-- Chat area -->
-      <div class="chat-area">
-        <main class="chat-viewport" id="chatViewport">
-          <div class="chat-messages" id="chatMessages">
-            <div class="splash" id="splash">
-              <div class="splash-icon">
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-                  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#splash-grad)" opacity="0.12"/>
-                  <rect x="12" y="12" width="40" height="40" rx="10" stroke="url(#splash-grad)" stroke-width="1.5" fill="none"/>
-                  <path d="M24 28l6 6 10-10" stroke="url(#splash-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <defs>
-                    <linearGradient id="splash-grad" x1="0" y1="0" x2="64" y2="64">
-                      <stop offset="0%" stop-color="#6366f1"/>
-                      <stop offset="100%" stop-color="#06b6d4"/>
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-              <h1 class="splash-title">OpenCLI</h1>
-              <p class="splash-subtitle">Your workspace-aware coding assistant</p>
-              <p class="splash-hint">Send a message to get started</p>
-            </div>
-          </div>
-
-          <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </main>
-
-        <!-- Input area -->
-        <footer class="input-area">
-          <div class="input-toolbar">
-            <div class="model-selector" id="modelSelector">
-              <button class="model-selector-btn" id="modelSelectorBtn">
-                <span class="model-selector-dot"></span>
-                <span class="model-selector-name" id="currentModelName">claude-opus-4-7</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              <div class="model-dropdown" id="modelDropdown">
-                <div class="model-dropdown-group">
-                  <span class="model-dropdown-label">Claude</span>
-                  <button class="model-option active" data-model="claude-opus-4-7">Opus 4.7</button>
-                  <button class="model-option" data-model="claude-sonnet-4-6">Sonnet 4.6</button>
-                  <button class="model-option" data-model="claude-haiku-4-5">Haiku 4.5</button>
-                </div>
-                <div class="model-dropdown-group">
-                  <span class="model-dropdown-label">OpenAI</span>
-                  <button class="model-option" data-model="gpt-4o">GPT-4o</button>
-                  <button class="model-option" data-model="gpt-4o-mini">GPT-4o Mini</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="input-wrapper">
-            <textarea
-              class="input-field"
-              id="promptInput"
-              rows="1"
-              placeholder="Ask anything... (Shift+Enter for newline)"
-              autofocus
-            ></textarea>
-            <button class="send-btn" id="sendBtn" title="Send message">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M2 10l16-8-8 16-2-6-6-2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-          <div class="input-hint">
-            <kbd>Enter</kbd> send &nbsp; <kbd>Shift+Enter</kbd> newline &nbsp; <kbd>Ctrl+B</kbd> toggle sidebar
-          </div>
-        </footer>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+<body class="bg-[#06060b] text-[#e4e4f0] overflow-hidden select-none">
+  <!-- Vue 3 渲染进程挂载节点 -->
+  <div id="app"></div>
+  <script type="module" src="/app.ts"></script>
 </body>
 </html>

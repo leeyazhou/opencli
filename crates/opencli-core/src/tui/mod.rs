@@ -1,6 +1,6 @@
 mod background;
 mod guard;
-mod state;
+pub(crate) mod state;
 mod view;
 
 use std::{io, time::Duration};
@@ -35,9 +35,7 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
         if state.pending.is_none()
             && let Some(prompt) = state.queued_prompts.pop_front()
         {
-            state
-                .messages
-                .push(ChatMessage::User(prompt.clone()));
+            state.messages.push(ChatMessage::User(prompt.clone()));
             state.last_event = "running queued prompt".to_string();
             state.scroll_from_bottom = 0;
             state.pending = Some(spawn_response_task(
@@ -69,9 +67,9 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                                     .store(true, std::sync::atomic::Ordering::Relaxed);
                             }
                             state.cancel_pending_task = false;
-                            state
-                                .messages
-                                .push(ChatMessage::System("Cancel requested for current task.".to_string()));
+                            state.messages.push(ChatMessage::System(
+                                "Cancel requested for current task.".to_string(),
+                            ));
                             state.scroll_from_bottom = 0;
                         } else {
                             state.cancel_pending_task = true;
@@ -86,7 +84,9 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                 }
                 KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     state.messages.clear();
-                    state.messages.push(ChatMessage::System("Conversation cleared.".to_string()));
+                    state
+                        .messages
+                        .push(ChatMessage::System("Conversation cleared.".to_string()));
                     state.scroll_from_bottom = 0;
                 }
                 KeyCode::Enter => {

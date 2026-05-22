@@ -63,6 +63,14 @@ jobs:
       - name: Build opencli (Rust)
         run: cargo build --release --locked --target ${{ matrix.rust-target }}
 
+      - name: Report binary size
+        shell: bash
+        run: |
+          ls -lh "target/${{ matrix.rust-target }}/release/${{ matrix.binary-name }}"
+          echo "##[group]Binary sections"
+          objdump -h "target/${{ matrix.rust-target }}/release/${{ matrix.binary-name }}" 2>/dev/null || echo "objdump not available"
+          echo "##[endgroup]"
+
       - name: Copy opencli binary to resources
         shell: bash
         run: |
@@ -96,6 +104,29 @@ jobs:
       - name: Build Electron app
         working-directory: desktop
         run: npx electron-vite build
+
+      - name: Set up macOS code signing
+        if: runner.os == 'macOS' && vars.APPLE_CERTIFICATE_BASE64 != ''
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          CERT_PATH=${{ runner.temp }}/build_certificate.p12
+          KEYCHAIN_PATH=${{ runner.temp }}/app-signing.keychain-db
+          echo -n "$CERTIFICATE_BASE64" | base64 --decode -o "$CERT_PATH"
+          security create-keychain -p "$CERTIFICATE_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$CERTIFICATE_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          echo "CSC_LINK=$CERT_PATH" >> $GITHUB_ENV
+          echo "CSC_KEY_PASSWORD=$CERTIFICATE_PASSWORD" >> $GITHUB_ENV
+          echo "APPLE_ID=$APPLE_ID" >> $GITHUB_ENV
+          echo "APPLE_TEAM_ID=$APPLE_TEAM_ID" >> $GITHUB_ENV
+          echo "APPLE_APP_SPECIFIC_PASSWORD=$APPLE_APP_SPECIFIC_PASSWORD" >> $GITHUB_ENV
 
       - name: Package with electron-builder
         working-directory: desktop

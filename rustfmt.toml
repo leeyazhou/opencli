@@ -1,0 +1,7 @@
+# rustfmt configuration options
+# See: https://rust-lang.github.io/rustfmt/
+
+edition = "2024"
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true

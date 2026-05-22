@@ -76,14 +76,14 @@ fn opencli_markdown_render_for_test(input: &str) -> String {
                 _ => {}
             },
             Event::End(tag) => match tag {
-                TagEnd::Paragraph | TagEnd::Heading(..) => {
-                    if !out.ends_with("\n\n") {
-                        if !out.ends_with('\n') {
-                            out.push('\n');
-                        }
+                // 若以段落或标题结尾，且输出流末尾尚不是双换行，则追加必要换行符以作分隔
+                TagEnd::Paragraph | TagEnd::Heading(..) if !out.ends_with("\n\n") => {
+                    if !out.ends_with('\n') {
                         out.push('\n');
                     }
+                    out.push('\n');
                 }
+                TagEnd::Paragraph | TagEnd::Heading(..) => {}
                 TagEnd::BlockQuote(_) => {
                     in_blockquote = false;
                     if !out.ends_with('\n') {

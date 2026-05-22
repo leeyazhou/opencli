@@ -97,6 +97,7 @@ pub async fn run_subagent(
         agent_id: agent_id.as_str(),
         parent_agent_id: parent_agent_id.as_deref(),
         max_steps: request.max_steps.unwrap_or(child_config.agent_max_steps),
+        event_sender: None,
     })
     .await;
 

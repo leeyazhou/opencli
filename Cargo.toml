@@ -6,6 +6,14 @@ resolver = "3"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85.0"
+description = "A powerful, asynchronous agentic CLI tool for smart command executions and automated tasks."
+license = "MIT"
+repository = "https://github.com/leeyazhou/opencli"
+homepage = "https://github.com/leeyazhou/opencli"
+authors = ["opencli maintainers"]
+keywords = ["cli", "agent", "ai", "terminal", "automation"]
+categories = ["command-line-interface", "development-tools"]
 readme = "README.md"
 
 [workspace.lints.rust]
@@ -49,3 +57,9 @@ opencli-output = { path = "crates/opencli-output", default-features = false }
 opencli-provider = { path = "crates/opencli-provider", default-features = false }
 opencli-session = { path = "crates/opencli-session" }
 opencli-tools = { path = "crates/opencli-tools" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

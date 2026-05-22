@@ -206,6 +206,20 @@ Use this as a quick routing guide before making changes.
 - Update `AGENTS.md` if build/test/style expectations change.
 - Keep release scripts, install scripts, and CI in sync with new commands or dependencies.
 
+## Rust Backend & Electron Desktop Collaboration Conventions
+
+When developing or modifying code that affects the interaction between the Rust binary and the Electron desktop client, adhere to these key integration practices:
+
+- **Graceful Shutdown & Self-Destruction via Stdin EOF**:
+  - The Rust backend, when launched in ACP mode (`opencli acp`), communicates via stdio.
+  - The main event loop in Rust must robustly handle `stdin` EOF (End-of-File). When Electron exits or closes the pipe, Rust must immediately detect this, flush pending session persistence writes and audit logs, and exit cleanly. This prevents orphaned zombie processes.
+- **Cross-Platform Stdio Buffering & Endline Handling**:
+  - Ensure compatibility with cross-platform line ending dynamics (`\r\n` on Windows, `\n` on Unix). Always strip trailing carriage returns before JSON parsing.
+  - When outputting to `stdout`, write the complete JSON payload followed by a single newline character (`\n`) and flush the stream immediately to avoid rendering deadlocks.
+- **Structured Error Transport**:
+  - Never let Rust panic or print unformatted text to standard output in ACP mode.
+  - All Rust-level errors inside `acp` commands must be transformed into standard JSON-RPC 2.0 error payloads (`{ "code": -32000, "message": "..." }`) so Electron's frontend can gracefully handle and show the error.
+
 ## Things to Avoid
 
 - Do not put provider-specific branching in `app.rs` if it belongs in provider implementations.

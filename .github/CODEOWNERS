@@ -1,17 +1,17 @@
 # Default ownership
-* @example-owner
+* @leeyazhou
 
 # Core runtime and provider code
-/src/provider.rs @example-owner
-/src/provider_factory.rs @example-owner
-/src/runtime.rs @example-owner
+/src/provider.rs @leeyazhou
+/src/provider_factory.rs @leeyazhou
+/src/runtime.rs @leeyazhou
 
 # Tooling and safety
-/src/tools.rs @example-owner
-/src/approval.rs @example-owner
-/src/audit.rs @example-owner
-/src/safety.rs @example-owner
+/src/tools.rs @leeyazhou
+/src/approval.rs @leeyazhou
+/src/audit.rs @leeyazhou
+/src/safety.rs @leeyazhou
 
 # CI and release automation
-/.github/workflows/ @example-owner
-/scripts/ @example-owner
+/.github/workflows/ @leeyazhou
+/scripts/ @leeyazhou

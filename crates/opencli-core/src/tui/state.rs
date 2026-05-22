@@ -4,10 +4,18 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
+use anyhow;
 use opencli_session::StoredSession;
 
 use crate::app::DetachedSessionTurnResult;
+
+/// Messages sent from the background agent thread to the TUI.
+pub enum TaskMessage {
+    /// A streaming event (thought, tool call) for live rendering.
+    Event(TurnEvent),
+    /// The agent turn completed (success or error).
+    Finished(anyhow::Result<DetachedSessionTurnResult>),
+}
 
 pub struct TuiState {
     pub input: String,
@@ -22,7 +30,7 @@ pub struct TuiState {
 }
 
 pub struct PendingTask {
-    pub receiver: Receiver<Result<DetachedSessionTurnResult>>,
+    pub receiver: Receiver<TaskMessage>,
     pub cancel_requested: Arc<AtomicBool>,
     pub started_at: std::time::Instant,
     pub prompt_preview: String,
@@ -47,6 +55,16 @@ pub enum ChatMessage {
     },
     /// An error message
     Error(String),
+}
+
+/// Streaming event emitted by the agent turn for live TUI updates.
+#[derive(Debug, Clone)]
+pub enum TurnEvent {
+    Thought(String),
+    ToolCall {
+        tool_name: String,
+        status: ToolStatus,
+    },
 }
 
 #[derive(Debug, Clone)]

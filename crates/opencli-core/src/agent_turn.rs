@@ -1,4 +1,4 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::{Arc, atomic::AtomicBool, mpsc};
 
 use anyhow::Result;
 use opencli_audit::FileAuditLogger;
@@ -9,6 +9,7 @@ use opencli_provider::{ChatMessage, ProviderFactory};
 use crate::{
     agent::run_agent_loop,
     tools::{ToolExecutionContext, ToolRegistry},
+    tui::state::TurnEvent,
 };
 
 pub(crate) struct AgentTurnRequest<'a> {
@@ -19,6 +20,7 @@ pub(crate) struct AgentTurnRequest<'a> {
     pub agent_id: &'a str,
     pub parent_agent_id: Option<&'a str>,
     pub max_steps: usize,
+    pub event_sender: Option<&'a mpsc::Sender<TurnEvent>>,
 }
 
 pub(crate) struct AgentTurnOutput {
@@ -46,6 +48,7 @@ pub(crate) async fn run_agent_turn(request: AgentTurnRequest<'_>) -> Result<Agen
         request.cancel_requested,
         request.max_steps,
         request.messages,
+        request.event_sender,
     )
     .await?;
 
@@ -86,6 +89,7 @@ mod tests {
             agent_id: "agent-1",
             parent_agent_id: None,
             max_steps: 1,
+            event_sender: None,
         })
         .await
         .expect("agent turn should succeed");

@@ -8,7 +8,7 @@ Security fixes are intended for the latest development state and the latest tagg
 
 Do not open public GitHub issues for sensitive vulnerabilities.
 
-Report security issues privately to the maintainers with:
+Report security issues privately to the maintainers via email at security@example.com with:
 
 - a clear description of the issue
 - affected commands or modules

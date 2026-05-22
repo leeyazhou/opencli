@@ -1,6 +1,6 @@
 mod common;
 
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::{Arc, atomic::AtomicBool, mpsc};
 use std::{
     io::{self, Write},
     path::PathBuf,
@@ -93,6 +93,7 @@ impl App {
                 None,
                 self.runtime.config.agent_max_steps,
                 &mut messages,
+                None,
             )
             .instrument(span)
             .await?;
@@ -350,6 +351,7 @@ impl App {
         mut session: StoredSession,
         prompt: String,
         cancel_requested: Arc<AtomicBool>,
+        event_sender: Option<mpsc::Sender<crate::tui::state::TurnEvent>>,
     ) -> DetachedSessionTurnResult {
         let request_id = Uuid::new_v4().to_string();
         let span = info_span!("detached_session_turn", request_id = %request_id);
@@ -363,6 +365,7 @@ impl App {
             agent_id: request_id.as_str(),
             parent_agent_id: None,
             max_steps: config.agent_max_steps,
+            event_sender: event_sender.as_ref(),
         })
         .instrument(span)
         .await;
@@ -418,6 +421,7 @@ impl App {
                 None,
                 self.runtime.config.agent_max_steps,
                 &mut session.messages,
+                None,
             )
             .await?;
             save_session(&self.runtime.config, session)?;
@@ -462,6 +466,7 @@ mod tests {
             session.clone(),
             "persist me".to_string(),
             Arc::clone(&cancel_requested),
+            None, // 在测试中不传递事件发送者
         )
         .await;
 

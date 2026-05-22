@@ -8,7 +8,7 @@ use ratatui::{
 };
 use unicode_width::UnicodeWidthStr;
 
-use super::state::{ChatMessage, TuiState, ToolStatus};
+use super::state::{ChatMessage, ToolStatus, TuiState};
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let input_height = input_height(state);
@@ -166,12 +166,12 @@ fn render_conversation(state: &TuiState) -> Text<'static> {
                         .bg(Color::Green)
                         .add_modifier(Modifier::BOLD),
                 )]));
-                for line in render_markdown_tui(&[text.clone()]).lines {
+                // 使用 std::slice::from_ref 避免对 String 实例的冗余克隆
+                for line in render_markdown_tui(std::slice::from_ref(text)).lines {
                     let mut styled = line.clone();
-                    styled.spans.insert(
-                        0,
-                        Span::styled(" │ ", Style::default().fg(Color::Green)),
-                    );
+                    styled
+                        .spans
+                        .insert(0, Span::styled(" │ ", Style::default().fg(Color::Green)));
                     lines.push(styled);
                 }
                 lines.push(Line::from(vec![Span::styled(
@@ -187,12 +187,12 @@ fn render_conversation(state: &TuiState) -> Text<'static> {
                         .bg(Color::Blue)
                         .add_modifier(Modifier::BOLD),
                 )]));
-                for line in render_markdown_tui(&[text.clone()]).lines {
+                // 使用 std::slice::from_ref 避免对 String 实例的冗余克隆
+                for line in render_markdown_tui(std::slice::from_ref(text)).lines {
                     let mut styled = line.clone();
-                    styled.spans.insert(
-                        0,
-                        Span::styled(" │ ", Style::default().fg(Color::Blue)),
-                    );
+                    styled
+                        .spans
+                        .insert(0, Span::styled(" │ ", Style::default().fg(Color::Blue)));
                     lines.push(styled);
                 }
                 lines.push(Line::from(vec![Span::styled(
@@ -255,9 +255,7 @@ fn render_conversation(state: &TuiState) -> Text<'static> {
             ChatMessage::Error(text) => {
                 lines.push(Line::from(vec![Span::styled(
                     format!(" Error: {text}"),
-                    Style::default()
-                        .fg(Color::Red)
-                        .add_modifier(Modifier::BOLD),
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                 )]));
             }
         }

@@ -5,16 +5,11 @@ use anyhow::{Result, bail};
 use futures_util::{FutureExt, StreamExt, stream::FuturesUnordered};
 use opencli_audit::{AuditEvent, AuditLogger, FileAuditLogger};
 use opencli_config::RuntimeConfig;
-use opencli_output::BufferRenderer;
 use opencli_provider::ChatMessage;
-use opencli_provider::ProviderFactory;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    agent::run_agent_loop,
-    tools::{ToolExecutionContext, ToolRegistry},
-};
+use crate::agent_turn::{AgentTurnRequest, run_agent_turn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubAgentRequest {
@@ -64,19 +59,8 @@ pub async fn run_subagent(
         child_config.allowed_tools = tools;
     }
 
-    let provider = ProviderFactory::new().create(&child_config)?;
     let audit = FileAuditLogger::new();
     let started_at = Instant::now();
-    let tool_registry = ToolRegistry::new();
-    let mut renderer = BufferRenderer::new();
-    let tool_context = ToolExecutionContext {
-        config: &child_config,
-        audit: &audit,
-        cancel_requested,
-        delegation_depth: delegation_depth + 1,
-        agent_id: Some(agent_id.as_str()),
-        parent_agent_id: parent_agent_id.as_deref(),
-    };
 
     let system = build_subagent_system_prompt(&request.role);
     let user = build_subagent_user_prompt(&request.task, request.context.as_deref());
@@ -105,20 +89,20 @@ pub async fn run_subagent(
         },
     )?;
 
-    let result = run_agent_loop(
-        provider.as_ref(),
-        &tool_registry,
-        &mut renderer,
-        &tool_context,
+    let result = run_agent_turn(AgentTurnRequest {
+        config: &child_config,
+        messages: &mut messages,
         cancel_requested,
-        request.max_steps.unwrap_or(child_config.agent_max_steps),
-        &mut messages,
-    )
+        delegation_depth: delegation_depth + 1,
+        agent_id: agent_id.as_str(),
+        parent_agent_id: parent_agent_id.as_deref(),
+        max_steps: request.max_steps.unwrap_or(child_config.agent_max_steps),
+    })
     .await;
 
     let duration_ms = started_at.elapsed().as_millis();
     let output = match &result {
-        Ok(output) => Some(output.clone()),
+        Ok(output) => Some(output.output.clone()),
         Err(_) => None,
     };
     let error = result.as_ref().err().map(|err| format!("{err:#}"));

@@ -17,7 +17,7 @@ use crate::app::App;
 
 use self::background::{poll_background, spawn_response_task};
 use self::guard::TerminalRestoreGuard;
-use self::state::TuiState;
+use self::state::{ChatMessage, TuiState};
 use self::view::render;
 
 pub async fn run_chat_tui(app: &mut App) -> Result<()> {
@@ -35,7 +35,9 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
         if state.pending.is_none()
             && let Some(prompt) = state.queued_prompts.pop_front()
         {
-            state.lines.push(format!("> {prompt}"));
+            state
+                .messages
+                .push(ChatMessage::User(prompt.clone()));
             state.last_event = "running queued prompt".to_string();
             state.scroll_from_bottom = 0;
             state.pending = Some(spawn_response_task(
@@ -68,8 +70,8 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                             }
                             state.cancel_pending_task = false;
                             state
-                                .lines
-                                .push("Cancel requested for current task.".to_string());
+                                .messages
+                                .push(ChatMessage::System("Cancel requested for current task.".to_string()));
                             state.scroll_from_bottom = 0;
                         } else {
                             state.cancel_pending_task = true;
@@ -83,8 +85,8 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                     state.scroll_from_bottom = state.scroll_from_bottom.saturating_sub(1)
                 }
                 KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    state.lines.clear();
-                    state.lines.push("Conversation cleared.".to_string());
+                    state.messages.clear();
+                    state.messages.push(ChatMessage::System("Conversation cleared.".to_string()));
                     state.scroll_from_bottom = 0;
                 }
                 KeyCode::Enter => {
@@ -95,7 +97,7 @@ pub async fn run_chat_tui(app: &mut App) -> Result<()> {
                         let prompt = state.input.trim().to_string();
                         if !prompt.is_empty() {
                             if state.pending.is_none() {
-                                state.lines.push(format!("> {prompt}"));
+                                state.messages.push(ChatMessage::User(prompt.clone()));
                                 state.last_event = "running prompt".to_string();
                                 state.scroll_from_bottom = 0;
                                 state.pending = Some(spawn_response_task(

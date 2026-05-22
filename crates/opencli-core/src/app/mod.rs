@@ -9,11 +9,10 @@ use std::{
 
 use anyhow::{Result, bail};
 use opencli_audit::{
-    FileAuditLogger, clear_records, compute_agent_graph, compute_stats, export_records,
-    read_all_records, read_records, render_agent_graph,
+    clear_records, compute_agent_graph, compute_stats, export_records, read_all_records,
+    read_records, render_agent_graph,
 };
 use opencli_config::{RuntimeConfig, ensure_default_config, redacted_config};
-use opencli_output::BufferRenderer;
 use opencli_provider::{ChatMessage, Renderer};
 use opencli_session::{
     StoredSession, append_message, create_session, delete_session, list_sessions, load_session,
@@ -25,6 +24,7 @@ use uuid::Uuid;
 use crate::{
     a2a::{SubAgentRequest, run_subagent, run_subagents_concurrent},
     agent::{run_agent_loop, run_streaming_text},
+    agent_turn::{AgentTurnRequest, run_agent_turn},
     commands::{
         A2aArgs, A2aBatchArgs, AuditExportArgs, AuditListArgs, AuditTailArgs, ConfigCommand,
     },
@@ -34,16 +34,16 @@ use crate::{
     tools::ToolExecutionContext,
 };
 
-#[cfg(feature = "tui")]
-use crate::tools::ToolRegistry;
-
-#[cfg(feature = "tui")]
-use opencli_provider::ProviderFactory;
-
 use self::common::{join_prompt, read_stdin_if_piped};
 
 pub struct App {
     runtime: Runtime,
+}
+
+#[cfg(feature = "tui")]
+pub struct DetachedSessionTurnResult {
+    pub session: StoredSession,
+    pub output: Result<String>,
 }
 
 impl App {
@@ -350,35 +350,35 @@ impl App {
         mut session: StoredSession,
         prompt: String,
         cancel_requested: Arc<AtomicBool>,
-    ) -> Result<(StoredSession, String)> {
+    ) -> DetachedSessionTurnResult {
         let request_id = Uuid::new_v4().to_string();
         let span = info_span!("detached_session_turn", request_id = %request_id);
-        let provider = ProviderFactory::new().create(&config)?;
-        let audit = FileAuditLogger::new();
-        let tool_registry = ToolRegistry::new();
-        let mut renderer = BufferRenderer::new();
         append_message(&mut session, ChatMessage::user(prompt));
-        let tool_context = ToolExecutionContext {
+        let initial_save = save_session(&config, &session);
+        let result = run_agent_turn(AgentTurnRequest {
             config: &config,
-            audit: &audit,
+            messages: &mut session.messages,
             cancel_requested: Some(&cancel_requested),
             delegation_depth: 0,
-            agent_id: Some(request_id.as_str()),
+            agent_id: request_id.as_str(),
             parent_agent_id: None,
-        };
-        let output = run_agent_loop(
-            provider.as_ref(),
-            &tool_registry,
-            &mut renderer,
-            &tool_context,
-            Some(&cancel_requested),
-            config.agent_max_steps,
-            &mut session.messages,
-        )
+            max_steps: config.agent_max_steps,
+        })
         .instrument(span)
-        .await?;
-        save_session(&config, &session)?;
-        Ok((session, output))
+        .await;
+
+        let output = match initial_save {
+            Ok(()) => match result {
+                Ok(result) => match save_session(&config, &session) {
+                    Ok(()) => Ok(result.output),
+                    Err(error) => Err(error),
+                },
+                Err(error) => Err(error),
+            },
+            Err(error) => Err(error),
+        };
+
+        DetachedSessionTurnResult { session, output }
     }
 
     async fn run_interactive_session(&mut self, session: &mut StoredSession) -> Result<()> {
@@ -431,4 +431,47 @@ fn prompt_only(messages: &[ChatMessage]) -> bool {
         && messages
             .first()
             .is_some_and(|message| message.role == "user")
+}
+
+#[cfg(all(test, feature = "tui"))]
+mod tests {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    use opencli_config::RuntimeConfig;
+    use opencli_session::{create_session, load_session};
+    use uuid::Uuid;
+
+    use super::App;
+
+    #[tokio::test]
+    async fn detached_turn_preserves_prompt_on_cancellation() {
+        let temp_root = std::env::temp_dir().join(format!("opencli-app-test-{}", Uuid::new_v4()));
+        let config = RuntimeConfig {
+            session_dir: temp_root.join("sessions").to_string_lossy().to_string(),
+            audit_log_path: temp_root.join("audit.jsonl").to_string_lossy().to_string(),
+            ..RuntimeConfig::default()
+        };
+        let session = create_session(&config).expect("session should be created");
+        let cancel_requested = Arc::new(AtomicBool::new(true));
+
+        let result = App::run_detached_session_turn(
+            config.clone(),
+            session.clone(),
+            "persist me".to_string(),
+            Arc::clone(&cancel_requested),
+        )
+        .await;
+
+        assert!(result.output.is_err());
+        assert!(cancel_requested.load(Ordering::Relaxed));
+        assert_eq!(result.session.messages.len(), 1);
+        assert_eq!(result.session.messages[0].content, "persist me");
+
+        let loaded = load_session(&config, &session.id).expect("session should load");
+        assert_eq!(loaded.messages.len(), 1);
+        assert_eq!(loaded.messages[0].content, "persist me");
+    }
 }

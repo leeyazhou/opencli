@@ -40,6 +40,7 @@ async fn run() -> anyhow::Result<()> {
                 concurrency: args.concurrency,
             }))
         }
+        Some(Commands::Acp) => Some(commands::Command::Acp),
         Some(Commands::Models) => Some(commands::Command::Models),
         Some(Commands::Completions { .. }) => unreachable!(),
         Some(Commands::Run(args)) => Some(commands::Command::Run(commands::RunArgs {

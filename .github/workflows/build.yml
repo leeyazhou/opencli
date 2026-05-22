@@ -1,0 +1,138 @@
+name: Desktop Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS-arm64
+            os: macos-latest
+            rust-target: aarch64-apple-darwin
+            resource-dir: mac
+            binary-name: opencli
+            builder-args: "--mac --arm64"
+
+          - name: macOS-x64
+            os: macos-13
+            rust-target: x86_64-apple-darwin
+            resource-dir: mac
+            binary-name: opencli
+            builder-args: "--mac --x64"
+
+          - name: Linux-x64
+            os: ubuntu-latest
+            rust-target: x86_64-unknown-linux-gnu
+            resource-dir: linux
+            binary-name: opencli
+            builder-args: "--linux"
+
+          - name: Windows-x64
+            os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+            resource-dir: win
+            binary-name: opencli.exe
+            builder-args: "--win"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build opencli (Rust)
+        run: cargo build --release --locked --target ${{ matrix.rust-target }}
+
+      - name: Copy opencli binary to resources
+        shell: bash
+        run: |
+          cp "target/${{ matrix.rust-target }}/release/${{ matrix.binary-name }}" \
+             "desktop/resources/${{ matrix.resource-dir }}/${{ matrix.binary-name }}"
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            chmod +x "desktop/resources/${{ matrix.resource-dir }}/${{ matrix.binary-name }}"
+          fi
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('desktop/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Electron app
+        working-directory: desktop
+        run: npx electron-vite build
+
+      - name: Package with electron-builder
+        working-directory: desktop
+        env:
+          ELECTRON_OVERRIDE_DIST_PATH: ${{ github.workspace }}/desktop/node_modules/electron/dist
+        run: npx electron-builder ${{ matrix.builder-args }} --publish=never
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: desktop/dist/*
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f -not -name "*.blockmap" | while read f; do
+            cp "$f" "release-assets/$(basename "$f")"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

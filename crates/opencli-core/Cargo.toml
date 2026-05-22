@@ -36,6 +36,7 @@ opencli-output.workspace = true
 opencli-provider.workspace = true
 opencli-session.workspace = true
 opencli-tools.workspace = true
+agent-client-protocol = "0.12.1"
 
 [dev-dependencies]
 mockito.workspace = true

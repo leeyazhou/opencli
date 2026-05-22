@@ -26,6 +26,8 @@ pub enum Commands {
     Chat,
     #[cfg(feature = "tui")]
     Tui,
+    /// Run as an ACP (Agent Client Protocol) agent via stdio
+    Acp,
     A2a(A2aArgs),
     A2aBatch(A2aBatchArgs),
     Models,

@@ -8,7 +8,7 @@ use ratatui::{
 };
 use unicode_width::UnicodeWidthStr;
 
-use super::state::TuiState;
+use super::state::{ChatMessage, TuiState, ToolStatus};
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let input_height = input_height(state);
@@ -45,33 +45,27 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     );
     frame.render_widget(header, chunks[0]);
 
+    // --- Body: Conversation pane + Sidebar ---
     let body = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Min(1), Constraint::Length(30)])
         .split(chunks[1]);
 
-    let history_text = render_conversation(state);
+    // Conversation pane: show messages with role-based styling
+    let conversation = render_conversation(state);
     let visible_height = body[0].height.saturating_sub(2);
-    let max_scroll = (history_text.lines.len() as u16).saturating_sub(visible_height);
+    let max_scroll = (conversation.lines.len() as u16).saturating_sub(visible_height);
     let scroll_y = max_scroll.saturating_sub(state.scroll_from_bottom.min(max_scroll));
 
-    let conversation_title = if state.pending.is_some() {
-        format!(
-            " Conversation  waiting{} ",
-            if state.queued_prompts.is_empty() {
-                ""
-            } else {
-                " + queue"
-            }
-        )
-    } else {
-        " Conversation ".to_string()
+    let conv_title = match (state.pending.is_some(), state.queued_prompts.is_empty()) {
+        (true, true) => " Conversation  waiting ".to_string(),
+        (true, false) => " Conversation  waiting + queue ".to_string(),
+        (false, _) => " Conversation ".to_string(),
     };
-
-    let history = Paragraph::new(history_text)
+    let history = Paragraph::new(conversation)
         .block(
             Block::default()
-                .title(conversation_title)
+                .title(conv_title)
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Blue)),
         )
@@ -79,16 +73,18 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         .scroll((scroll_y, 0));
     frame.render_widget(history, body[0]);
 
+    // Sidebar: status and keybindings
     let sidebar = Paragraph::new(render_sidebar(state))
         .block(
             Block::default()
-                .title(" Sidebar ")
+                .title(" Status ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::DarkGray)),
         )
         .wrap(Wrap { trim: false });
     frame.render_widget(sidebar, body[1]);
 
+    // --- Input area ---
     let input_title = if state.pending.is_some() {
         if state.cancel_pending_task {
             " Input  press Esc again to cancel "
@@ -114,6 +110,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         .wrap(Wrap { trim: false });
     frame.render_widget(input_widget, chunks[2]);
 
+    // --- Status bar ---
     let status = if state.pending.is_some() {
         if state.cancel_pending_task {
             format!(
@@ -136,6 +133,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     );
     frame.render_widget(status_widget, chunks[3]);
 
+    // Cursor positioning
     let input_lines: Vec<&str> = state.input.split('\n').collect();
     let cursor_line = input_lines.len().saturating_sub(1) as u16;
     let current_line = input_lines.last().copied().unwrap_or("");
@@ -157,33 +155,112 @@ fn input_height(state: &TuiState) -> u16 {
 fn render_conversation(state: &TuiState) -> Text<'static> {
     let mut lines = Vec::new();
 
-    for block in &state.lines {
-        let (title, accent, body, rail, corner) = classify_block(block);
+    for msg in &state.messages {
         lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!(" {title} "),
-                Style::default().fg(accent).add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                "  ·─────────────────────────────────────",
-                Style::default().fg(Color::DarkGray),
-            ),
-        ]));
-
-        for line in render_markdown_tui(&[body]).lines {
-            let mut styled_line = line.clone();
-            styled_line.spans.insert(
-                0,
-                Span::styled(format!(" {rail} "), Style::default().fg(accent)),
-            );
-            lines.push(styled_line);
+        match msg {
+            ChatMessage::User(text) => {
+                lines.push(Line::from(vec![Span::styled(
+                    " You ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+                for line in render_markdown_tui(&[text.clone()]).lines {
+                    let mut styled = line.clone();
+                    styled.spans.insert(
+                        0,
+                        Span::styled(" │ ", Style::default().fg(Color::Green)),
+                    );
+                    lines.push(styled);
+                }
+                lines.push(Line::from(vec![Span::styled(
+                    " └──────────────────────────────────────",
+                    Style::default().fg(Color::DarkGray),
+                )]));
+            }
+            ChatMessage::Assistant(text) => {
+                lines.push(Line::from(vec![Span::styled(
+                    " Assistant ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Blue)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+                for line in render_markdown_tui(&[text.clone()]).lines {
+                    let mut styled = line.clone();
+                    styled.spans.insert(
+                        0,
+                        Span::styled(" │ ", Style::default().fg(Color::Blue)),
+                    );
+                    lines.push(styled);
+                }
+                lines.push(Line::from(vec![Span::styled(
+                    " └──────────────────────────────────────",
+                    Style::default().fg(Color::DarkGray),
+                )]));
+            }
+            ChatMessage::Thought(text) => {
+                lines.push(Line::from(vec![
+                    Span::styled(
+                        " Thinking ",
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::Magenta)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!(" {text}"),
+                        Style::default()
+                            .fg(Color::Magenta)
+                            .add_modifier(Modifier::ITALIC),
+                    ),
+                ]));
+            }
+            ChatMessage::ToolCall { tool_name, status } => {
+                let (status_text, status_color) = match status {
+                    ToolStatus::Pending => ("pending", Color::Yellow),
+                    ToolStatus::Running => ("running", Color::Yellow),
+                    ToolStatus::Completed(outcome) => (outcome.as_str(), Color::Green),
+                    ToolStatus::Failed(err) => (err.as_str(), Color::Red),
+                };
+                lines.push(Line::from(vec![
+                    Span::styled(
+                        " Tool ",
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!(" {tool_name} "),
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        status_text.to_string(),
+                        Style::default()
+                            .fg(status_color)
+                            .add_modifier(Modifier::ITALIC),
+                    ),
+                ]));
+            }
+            ChatMessage::System(text) => {
+                lines.push(Line::from(vec![Span::styled(
+                    format!(" {text}"),
+                    Style::default().fg(Color::DarkGray),
+                )]));
+            }
+            ChatMessage::Error(text) => {
+                lines.push(Line::from(vec![Span::styled(
+                    format!(" Error: {text}"),
+                    Style::default()
+                        .fg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                )]));
+            }
         }
-
-        lines.push(Line::from(vec![Span::styled(
-            format!(" {corner}──────────────────────────────────────"),
-            Style::default().fg(Color::DarkGray),
-        )]));
     }
 
     Text::from(lines)
@@ -197,6 +274,19 @@ fn render_sidebar(state: &TuiState) -> Text<'static> {
     } else {
         "idle"
     };
+
+    // Collect message type counts
+    let mut user_count = 0;
+    let mut assistant_count = 0;
+    let mut system_count = 0;
+    for msg in &state.messages {
+        match msg {
+            ChatMessage::User(_) => user_count += 1,
+            ChatMessage::Assistant(_) => assistant_count += 1,
+            ChatMessage::System(_) => system_count += 1,
+            _ => {}
+        }
+    }
 
     Text::from(vec![
         Line::from(vec![
@@ -218,8 +308,19 @@ fn render_sidebar(state: &TuiState) -> Text<'static> {
         Line::from(vec![
             Span::styled("messages ", Style::default().fg(Color::DarkGray)),
             Span::styled(
-                state.lines.len().to_string(),
+                state.messages.len().to_string(),
                 Style::default().fg(Color::Cyan),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled("user msgs ", Style::default().fg(Color::DarkGray)),
+            Span::styled(user_count.to_string(), Style::default().fg(Color::Green)),
+        ]),
+        Line::from(vec![
+            Span::styled("asst msgs ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                assistant_count.to_string(),
+                Style::default().fg(Color::Blue),
             ),
         ]),
         Line::from(vec![
@@ -281,18 +382,6 @@ fn render_sidebar(state: &TuiState) -> Text<'static> {
         )),
         Line::from(state.session.title.clone()),
     ])
-}
-
-fn classify_block(block: &str) -> (&'static str, Color, String, char, char) {
-    if let Some(rest) = block.strip_prefix("> ") {
-        ("You", Color::Green, rest.to_string(), '│', '└')
-    } else if block.starts_with("Error:") {
-        ("Error", Color::Red, block.to_string(), '┃', '┗')
-    } else if block.starts_with('#') || block.starts_with("- ") {
-        ("System", Color::DarkGray, block.to_string(), '┆', '└')
-    } else {
-        ("Assistant", Color::Blue, block.to_string(), '│', '└')
-    }
 }
 
 fn format_elapsed(duration: std::time::Duration) -> String {

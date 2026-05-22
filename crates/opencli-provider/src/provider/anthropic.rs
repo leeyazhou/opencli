@@ -3,11 +3,8 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
-use tokio::time::{Duration as TokioDuration, sleep};
+use std::ops::ControlFlow;
+use std::sync::{Arc, atomic::AtomicBool};
 use tracing::{debug, info};
 
 use opencli_tools::{ToolCall, ToolDefinition};
@@ -16,7 +13,10 @@ use crate::{message::ChatMessage, output::Renderer};
 
 use super::{
     ChatResponse, Provider, ProviderCapabilities, ProviderConfig,
-    util::{build_client, ensure_success, serialize_anthropic_message, serialize_anthropic_tool},
+    util::{
+        ModelListResponse, build_client, cancelable_request, collect_model_ids, ensure_success,
+        for_each_sse_data_line, serialize_anthropic_message, serialize_anthropic_tool,
+    },
 };
 
 pub struct AnthropicProvider {
@@ -81,16 +81,6 @@ enum AnthropicContentBlock {
         name: String,
         input: Value,
     },
-}
-
-#[derive(Debug, Deserialize)]
-struct ModelsResponse {
-    data: Vec<ModelInfo>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ModelInfo {
-    id: String,
 }
 
 impl AnthropicProvider {
@@ -195,39 +185,31 @@ impl Provider for AnthropicProvider {
             cancel_requested,
         ).await?;
         let mut response = ensure_success(response).await?;
-        let mut buffer = String::new();
         let mut output = String::new();
-        while let Some(chunk) = cancelable_response_chunk(&mut response, cancel_requested).await? {
-            buffer.push_str(&String::from_utf8_lossy(&chunk));
-            while let Some(index) = buffer.find('\n') {
-                let line = buffer[..index].trim().to_string();
-                buffer = buffer[index + 1..].to_string();
-                if !line.starts_with("data:") {
-                    continue;
-                }
-                let payload = line.trim_start_matches("data:").trim();
-                if payload.is_empty() || payload == "[DONE]" {
-                    continue;
-                }
-                let parsed: Value = match serde_json::from_str(payload) {
-                    Ok(v) => v,
-                    Err(_) => continue,
-                };
-                if parsed.get("type").and_then(Value::as_str) == Some("message_stop") {
-                    renderer.render_line("")?;
-                    return Ok(output);
-                }
-                if let Some(text) = parsed.pointer("/delta/text").and_then(Value::as_str) {
-                    debug!(
-                        provider = "anthropic",
-                        chunk_len = text.len(),
-                        "received text delta"
-                    );
-                    renderer.render_text(text)?;
-                    output.push_str(text);
-                }
+        for_each_sse_data_line(&mut response, cancel_requested, |payload| {
+            if payload.is_empty() || payload == "[DONE]" {
+                return Ok(ControlFlow::Continue(()));
             }
-        }
+            let parsed: Value = match serde_json::from_str(payload) {
+                Ok(value) => value,
+                Err(_) => return Ok(ControlFlow::Continue(())),
+            };
+            if parsed.get("type").and_then(Value::as_str) == Some("message_stop") {
+                renderer.render_line("")?;
+                return Ok(ControlFlow::Break(()));
+            }
+            if let Some(text) = parsed.pointer("/delta/text").and_then(Value::as_str) {
+                debug!(
+                    provider = "anthropic",
+                    chunk_len = text.len(),
+                    "received text delta"
+                );
+                renderer.render_text(text)?;
+                output.push_str(text);
+            }
+            Ok(ControlFlow::Continue(()))
+        })
+        .await?;
         if !output.is_empty() {
             renderer.render_line("")?;
         }
@@ -245,45 +227,9 @@ impl Provider for AnthropicProvider {
             .await?;
         let body = ensure_success(response)
             .await?
-            .json::<ModelsResponse>()
+            .json::<ModelListResponse>()
             .await
             .context("failed to parse anthropic models response")?;
-        Ok(body.data.into_iter().map(|item| item.id).collect())
-    }
-}
-
-async fn cancelable_request<F, T>(
-    future: F,
-    cancel_requested: Option<&Arc<AtomicBool>>,
-) -> Result<T>
-where
-    F: std::future::Future<Output = Result<T, reqwest::Error>>,
-{
-    tokio::pin!(future);
-    loop {
-        if cancel_requested.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            bail!("agent execution canceled");
-        }
-
-        tokio::select! {
-            result = &mut future => return Ok(result?),
-            _ = sleep(TokioDuration::from_millis(50)) => {}
-        }
-    }
-}
-
-async fn cancelable_response_chunk(
-    response: &mut reqwest::Response,
-    cancel_requested: Option<&Arc<AtomicBool>>,
-) -> Result<Option<bytes::Bytes>> {
-    loop {
-        if cancel_requested.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            bail!("agent execution canceled");
-        }
-
-        tokio::select! {
-            result = response.chunk() => return Ok(result?),
-            _ = sleep(TokioDuration::from_millis(50)) => {}
-        }
+        Ok(collect_model_ids(body))
     }
 }

@@ -1,0 +1,76 @@
+{
+  "name": "opencli-desktop",
+  "version": "0.1.0",
+  "description": "OpenCLI Desktop - Agentic AI Coding Assistant",
+  "author": "OpenCLI",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "ELECTRON_OVERRIDE_DIST_PATH=./node_modules/electron/dist electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "ELECTRON_OVERRIDE_DIST_PATH=./node_modules/electron/dist electron-vite dev",
+    "pack": "electron-vite build && electron-builder --dir",
+    "dist": "electron-vite build && electron-builder",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "ai.opencli.desktop",
+    "productName": "OpenCLI",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/${os}",
+        "to": ".",
+        "filter": ["opencli*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "artifactName": "OpenCLI-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "category": "Development",
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "artifactName": "OpenCLI-${version}-linux-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "artifactName": "OpenCLI-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "dompurify": "^3.3.0",
+    "electron-log": "^5.4.0",
+    "highlight.js": "^11.11.0",
+    "marked": "^17.0.0"
+  },
+  "devDependencies": {
+    "electron": "^42.2.0",
+    "electron-builder": "^26.0.0",
+    "electron-context-menu": "^3.6.0",
+    "electron-reloader": "^1.2.0",
+    "electron-vite": "^5.0.0"
+  }
+}

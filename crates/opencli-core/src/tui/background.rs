@@ -10,11 +10,13 @@ use opencli_session::StoredSession;
 
 use crate::app::App;
 
+use super::state::{ChatMessage, PendingTask};
+
 pub fn spawn_response_task(
     config: RuntimeConfig,
     session_snapshot: StoredSession,
     prompt: String,
-) -> super::state::PendingTask {
+) -> PendingTask {
     let (sender, receiver) = mpsc::channel();
     let cancel_requested = Arc::new(AtomicBool::new(false));
     let cancel_requested_for_thread = Arc::clone(&cancel_requested);
@@ -38,10 +40,10 @@ pub fn spawn_response_task(
             prompt,
             cancel_requested_for_thread,
         ));
-        let _ = sender.send(result);
+        let _ = sender.send(Ok(result));
     });
 
-    super::state::PendingTask {
+    PendingTask {
         receiver,
         cancel_requested,
         started_at: Instant::now(),
@@ -52,20 +54,34 @@ pub fn spawn_response_task(
 pub fn poll_background(state: &mut super::state::TuiState) {
     if let Some(pending) = &state.pending {
         match pending.receiver.try_recv() {
-            Ok(Ok((updated_session, output))) => {
-                state.session = updated_session;
-                if !output.is_empty() {
-                    state.lines.push(output);
+            Ok(Ok(result)) => {
+                state.session = result.session;
+                match result.output {
+                    Ok(output) => {
+                        if !output.is_empty() {
+                            state
+                                .messages
+                                .push(ChatMessage::Assistant(output));
+                        }
+                        state.completed_turns += 1;
+                        state.last_event = format!("completed {}", pending.prompt_preview);
+                    }
+                    Err(error) => {
+                        if !format!("{error:#}").contains("agent execution canceled") {
+                            state.messages.push(ChatMessage::Error(format!("{error:#}")));
+                            state.last_event = format!("failed {}", pending.prompt_preview);
+                        } else {
+                            state.last_event = format!("canceled {}", pending.prompt_preview);
+                        }
+                    }
                 }
-                state.completed_turns += 1;
-                state.last_event = format!("completed {}", pending.prompt_preview);
                 state.scroll_from_bottom = 0;
                 state.cancel_pending_task = false;
                 state.pending = None;
             }
             Ok(Err(error)) => {
                 if !format!("{error:#}").contains("agent execution canceled") {
-                    state.lines.push(format!("Error: {error:#}"));
+                    state.messages.push(ChatMessage::Error(format!("{error:#}")));
                     state.last_event = format!("failed {}", pending.prompt_preview);
                 } else {
                     state.last_event = format!("canceled {}", pending.prompt_preview);
@@ -75,9 +91,9 @@ pub fn poll_background(state: &mut super::state::TuiState) {
                 state.pending = None;
             }
             Err(mpsc::TryRecvError::Disconnected) => {
-                state
-                    .lines
-                    .push("Error: background response task disconnected".to_string());
+                state.messages.push(ChatMessage::System(
+                    "Error: background response task disconnected".to_string(),
+                ));
                 state.last_event = "background task disconnected".to_string();
                 state.scroll_from_bottom = 0;
                 state.cancel_pending_task = false;

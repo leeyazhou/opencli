@@ -73,6 +73,7 @@ pub enum Command {
     Tui,
     A2a(A2aArgs),
     A2aBatch(A2aBatchArgs),
+    Acp,
     Models,
     Run(RunArgs),
     Config(ConfigCommand),

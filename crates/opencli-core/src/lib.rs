@@ -1,13 +1,16 @@
 pub mod a2a;
 pub mod agent;
+mod agent_turn;
 pub mod app;
 pub mod commands;
 pub mod context;
 pub mod errors;
+pub mod protocol;
 pub mod runtime;
 pub mod services;
 pub mod telemetry;
 pub mod tools;
+
 #[cfg(feature = "tui")]
 pub mod tui;
 
@@ -23,6 +26,11 @@ pub async fn run_command(
     command: Option<Command>,
     overrides: ConfigOverrides,
 ) -> Result<()> {
+    // The ACP command runs via stdio and doesn't need Runtime/App lifecycle.
+    if let Some(Command::Acp) = command {
+        return protocol::run_acp_agent(overrides).await;
+    }
+
     let runtime = Runtime::from_overrides(overrides)?;
     let mut app = App::from_runtime(runtime);
 
@@ -32,6 +40,7 @@ pub async fn run_command(
         Some(Command::Tui) => tui::run_chat_tui(&mut app).await,
         Some(Command::A2a(args)) => app.run_a2a(&args).await,
         Some(Command::A2aBatch(args)) => app.run_a2a_batch(&args).await,
+        Some(Command::Acp) => unreachable!(),
         Some(Command::Models) => app.run_models().await,
         Some(Command::Run(args)) => {
             app.run_with_context(&args.prompt, &args.files, &args.dirs)

@@ -1,7 +1,7 @@
 <template>
   <!-- 活动侧边栏：通过 width 动画折叠，保证折叠后不占据任何布局空间 -->
   <aside
-    class="sidebar flex flex-col relative border-r border-white/5 bg-[#0a0a14]/85 backdrop-blur-md select-none group h-full z-40 overflow-hidden"
+    class="sidebar flex flex-col relative border-r border-black/5 dark:border-white/5 bg-sidebar select-none group h-full z-40 overflow-hidden"
     :style="{ width: sidebarOpen ? sidebarWidth + 'px' : '0px' }"
   >
     <!-- 侧边栏主面板内容区 -->
@@ -19,30 +19,39 @@
 
       <!-- 面板：历史会话列表 -->
       <div class="flex-1 flex flex-col overflow-hidden min-h-0">
-        <div class="px-4 py-2.5 text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
-          <span>{{ t('sidebar.sessions_title') }}</span>
-          <span class="px-1.5 py-0.5 rounded bg-white/5 text-[9px] text-slate-400 font-mono">{{ sessions.length }}</span>
+        <!-- 会话列表标题 -->
+        <div class="px-4 py-2.5 text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-wider border-b border-black/5 dark:border-white/5 flex items-center justify-between">
+          <span>{{ t('sidebar.recent') }}</span>
+          <span class="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-mono">{{ sessions.length }}</span>
         </div>
 
         <!-- 会话 Item 滚动区 -->
-        <div class="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-1 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto py-2 flex flex-col gap-1 custom-scrollbar">
+          <!-- 单个会话项 -->
           <div 
             v-for="s in sessions" 
             :key="s.id"
             @click="switchSession(s.id)"
-            class="group/item flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all border border-transparent"
+            class="group/item flex items-center justify-between px-3 py-2 mx-2 rounded-lg cursor-pointer transition-all border border-transparent"
             :class="s.id === currentSessionId 
-              ? 'bg-primary/10 border-primary/20 text-white font-medium' 
-              : 'text-slate-400 hover:bg-white/5 hover:text-white'"
+              ? 'bg-black/5 dark:bg-white/10 border-black/10 dark:border-white/10 shadow-sm' 
+              : 'hover:bg-black/5 dark:hover:bg-white/5 hover:border-black/5 dark:hover:border-white/5'"
           >
             <div class="flex items-center gap-2.5 overflow-hidden flex-1">
               <MessageSquareIcon 
                 class="w-3.5 h-3.5 flex-shrink-0"
-                :class="s.id === currentSessionId ? 'text-primary' : 'text-slate-500 group-hover/item:text-slate-300'"
+                :class="s.id === currentSessionId ? 'text-primary' : 'text-slate-500 group-hover/item:text-slate-700 dark:group-hover/item:text-slate-300'"
               />
               <div class="flex flex-col overflow-hidden">
-                <span class="text-xs truncate max-w-[130px] font-mono">{{ s.title || 'Untitled' }}</span>
-                <span class="text-[9px] font-mono opacity-50">{{ s.messageCount || 0 }} msgs · {{ shortId(s.id) }}</span>
+                <span 
+                  class="text-xs truncate max-w-[130px] font-mono"
+                  :class="s.id === currentSessionId ? 'text-slate-900 dark:text-slate-200 font-medium' : 'text-slate-600 dark:text-slate-400 group-hover/item:text-slate-800 dark:group-hover/item:text-slate-300'"
+                >
+                  {{ s.title || 'Untitled' }}
+                </span>
+                <span class="text-[9px] font-mono text-slate-500 dark:text-slate-400/50 group-hover/item:text-slate-600 dark:group-hover/item:text-slate-400">
+                  {{ s.messageCount || 0 }} msgs · {{ shortId(s.id) }}
+                </span>
               </div>
             </div>
 
@@ -57,24 +66,24 @@
           </div>
 
           <!-- 缺省态 -->
-          <div v-if="sessions.length === 0" class="text-center py-8 text-xs font-mono text-slate-600">
+          <div v-if="sessions.length === 0" class="text-center py-8 text-xs font-mono text-slate-500">
             {{ t('sidebar.no_sessions') }}
           </div>
         </div>
       </div>
 
       <!-- 底部工作区路径与设置入口 -->
-      <div class="p-3 border-t border-white/5 bg-black/10 flex flex-col gap-2 flex-shrink-0">
+      <div class="p-3 border-t border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/10 flex flex-col gap-2 flex-shrink-0">
         <div class="flex flex-col gap-1">
           <span class="text-[9px] font-mono font-semibold uppercase tracking-wider text-slate-500">{{ t('sidebar.cwd_label') }}</span>
-          <div class="px-2 py-1 rounded bg-black/30 border border-white/5 text-[10px] font-mono text-slate-400 break-all select-all">
+          <div class="px-2 py-1 rounded bg-black/5 dark:bg-black/30 border border-black/5 dark:border-white/5 text-[10px] font-mono text-slate-500 dark:text-slate-400 break-all select-all">
             {{ projectCwd }}
           </div>
         </div>
 
         <button 
           @click="openSettings"
-          class="flex items-center justify-center gap-2 px-3 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-mono text-slate-300 hover:text-white transition-all cursor-pointer"
+          class="flex items-center justify-center gap-2 px-3 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-mono text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
         >
           <SettingsIcon class="w-3.5 h-3.5" />
           <span>{{ t('settings.title') }}</span>
@@ -89,82 +98,6 @@
       id="sidebarResizeHandle"
     ></div>
   </aside>
-
-  <!-- 全局设置悬浮对话框 (磨砂玻璃) -->
-  <div 
-    v-if="settingsVisible"
-    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] flex items-center justify-center transition-all duration-300 animate-in fade-in"
-  >
-    <div class="w-[420px] rounded-xl border border-white/10 bg-[#0c0c16]/90 backdrop-blur-lg shadow-2xl p-5 select-none animate-in scale-in duration-200">
-      <div class="flex justify-between items-center mb-5">
-        <h3 class="text-sm font-mono font-semibold tracking-wider text-slate-200 flex items-center gap-1.5">
-          <SettingsIcon class="w-4 h-4 text-primary" />
-          {{ t('settings.title') }}
-        </h3>
-        <button 
-          @click="closeSettings" 
-          class="p-1 hover:bg-white/5 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
-        >
-          <XIcon class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- 设置分组 -->
-      <div class="flex flex-col gap-4 mb-6">
-        <!-- 界面语言 -->
-        <div class="flex flex-col gap-2">
-          <label class="text-xs font-mono text-slate-400">{{ t('settings.language') }}</label>
-          <div class="flex gap-2">
-            <button 
-              @click="changeLanguage('zh')"
-              class="flex-1 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer"
-              :class="currentLang === 'zh' 
-                ? 'bg-primary/10 border-primary/30 text-primary font-semibold' 
-                : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'"
-            >
-              简体中文
-            </button>
-            <button 
-              @click="changeLanguage('en')"
-              class="flex-1 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer"
-              :class="currentLang === 'en' 
-                ? 'bg-primary/10 border-primary/30 text-primary font-semibold' 
-                : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'"
-            >
-              English
-            </button>
-          </div>
-        </div>
-
-        <!-- 主题偏好 (科技感) -->
-        <div class="flex flex-col gap-2">
-          <label class="text-xs font-mono text-slate-400">{{ t('settings.theme') }}</label>
-          <div class="flex gap-2">
-            <button 
-              v-for="theme in ['dark', 'dracula', 'light']"
-              :key="theme"
-              @click="changeTheme(theme)"
-              class="flex-1 py-1.5 rounded-lg border text-xs font-mono transition-all capitalize cursor-pointer"
-              :class="currentTheme === theme 
-                ? 'bg-primary/10 border-primary/30 text-primary font-semibold' 
-                : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'"
-            >
-              {{ theme }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-end border-t border-white/5 pt-4">
-        <button 
-          @click="closeSettings"
-          class="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition-all cursor-pointer"
-        >
-          {{ t('settings.close') }}
-        </button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -195,10 +128,6 @@ const sessions = ref<any[]>([]);
 const currentSessionId = ref<string | null>(null);
 const projectCwd = ref("/");
 
-// 设置模态弹层状态
-const settingsVisible = ref(false);
-const currentTheme = ref("dark");
-
 // 新建会话
 const requestNewSession = () => {
   state.emit("requestNewSession", {});
@@ -216,27 +145,9 @@ const deleteSession = (id: string) => {
   state.emit("requestDeleteSession", id);
 };
 
-// 设置面板开关
+// 触发全局设置面板
 const openSettings = () => {
-  settingsVisible.value = true;
-};
-
-const closeSettings = () => {
-  settingsVisible.value = false;
-};
-
-// 更改语言设定
-const changeLanguage = async (lang: "zh" | "en") => {
-  state.set("language", lang);
-  await acp.storeSet("language", lang);
-};
-
-// 更改主题
-const changeTheme = async (theme: string) => {
-  currentTheme.value = theme;
-  state.set("selectedTheme", theme);
-  document.documentElement.setAttribute("data-theme", theme);
-  await acp.storeSet("theme", theme);
+  state.emit("requestOpenSettings");
 };
 
 // 侧边栏拖拽 Resize 机制

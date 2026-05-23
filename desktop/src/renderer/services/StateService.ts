@@ -106,9 +106,9 @@ export class StateService {
    */
   public subscribe<K extends keyof AppState>(key: K, callback: StateListener<AppState[K]>): () => void {
     if (!this.listeners[key]) {
-      this.listeners[key] = new Set();
+      this.listeners[key] = new Set() as any;
     }
-    this.listeners[key]!.add(callback);
+    this.listeners[key]!.add(callback as any);
 
     // 订阅时立即使用当前值回调一次，便于组件初始化同步
     try {
@@ -152,7 +152,14 @@ export class StateService {
     }
     this.customEventListeners[event].add(callback);
     return () => {
-      this.customEventListeners[event]?.delete(callback);
+      this.off(event, callback);
     };
+  }
+
+  /**
+   * 移除自定义事件监听
+   */
+  public off(event: string, callback: StateListener<any>): void {
+    this.customEventListeners[event]?.delete(callback);
   }
 }

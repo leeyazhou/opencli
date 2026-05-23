@@ -5,6 +5,7 @@
  */
 
 import { createApp } from "vue";
+import { createPinia } from "pinia";
 import App from "./App.vue";
 import { ACPService } from "./services/ACPService";
 import { StateService } from "./services/StateService";
@@ -21,6 +22,8 @@ const i18nService = I18nService.getInstance();
 
 // 实例化并挂载 Vue 3 应用
 const app = createApp(App);
+const pinia = createPinia();
+app.use(pinia);
 
 // 依赖注入全局单例，使所有子组件可以方便地 inject 使用
 app.provide("acpService", acpService);

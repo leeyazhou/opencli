@@ -4,13 +4,13 @@
   <div class="bg-layer bg-gradient"></div>
   <ParticlesComponent />
 
-  <!-- App shell (Antigravity 2.0 经典三栏毛玻璃布局) -->
+  <!-- App shell (经典全局顶栏布局) -->
   <div class="app-shell flex flex-col h-screen overflow-hidden relative select-none">
-    <!-- 顶部完美对齐菜单标题栏 -->
+    <!-- 顶部全局菜单标题栏 -->
     <TitlebarComponent />
 
     <!-- 底部主体区 -->
-    <div class="app-body flex flex-1 overflow-hidden relative">
+    <div class="app-body flex-1 grid grid-cols-[auto_1fr_auto] overflow-hidden relative">
       <!-- 左侧边栏 -->
       <SidebarComponent />
 
@@ -26,11 +26,17 @@
 
     <!-- 全局快捷命令调色盘 -->
     <CommandPaletteComponent />
+
+    <!-- 全局系统设置弹窗 -->
+    <SettingsModal />
+
+    <!-- 全局 Agent 异常降级边界 -->
+    <ErrorScreen v-if="hasConnectedOnce && !isAgentRunning" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { ACPService } from "./services/ACPService";
 import { StateService } from "./services/StateService";
 import { I18nService } from "./services/I18nService";
@@ -43,18 +49,27 @@ import { ContextComponent } from "./components/context";
 import { TerminalComponent } from "./components/terminal";
 import { CommandPaletteComponent } from "./components/command-palette";
 import { ParticlesComponent } from "./components/particles";
+import SettingsModal from "./components/settings/SettingsModal.vue";
+import ErrorScreen from "./components/ui/ErrorScreen.vue";
 
 // 直接获取底层单例服务，避免根组件 inject 为 undefined 的 Vue 限制
 const acp = ACPService.getInstance();
 const state = StateService.getInstance();
 const i18n = I18nService.getInstance();
 
+const isAgentRunning = ref(true); // 默认 true 避免启动闪烁
+const hasConnectedOnce = ref(false); // 标记是否成功连上过，防止初次 Loading 也展示报错
 
 // 绑定全局状态事件总线
 const bindStateEventBus = () => {
   // 监听并执行重新初始化 Agent 进程
   state.on("requestInitializeAgent", async () => {
     await initializeAgent();
+  });
+
+  // 监听 Agent 连接存活状态
+  state.subscribe("agentRunning", (running) => {
+    isAgentRunning.value = running;
   });
 
   // 全局系统级快捷键监听
@@ -183,6 +198,7 @@ const initializeAgent = async () => {
     // 1. 进行握手与协议初始化（包含指数退避安全退路保护）
     const initResult = await withRetry(() => acp.initializeAgent());
     console.log("ACP 协议初始化握手成功返回:", initResult);
+    hasConnectedOnce.value = true;
 
     // 2. 优先恢复最近的历史会话，无历史时才创建新会话，避免每次启动都新建会话
     let sessionId: string | null = null;
@@ -233,6 +249,21 @@ onMounted(async () => {
   bindStateEventBus();
   await restorePreferences();
   await connectAgent();
+
+  // 每 5 秒轮询检查后端服务是否存活
+  setInterval(async () => {
+    if (!state.get("initialized")) return;
+    try {
+      const status = await acp.getAgentStatus();
+      if (!status.running && state.get("agentRunning")) {
+        console.error("检测到 Rust Agent 已崩溃离线！");
+        state.set("agentRunning", false);
+        state.emit("requestUpdateAgentStatus", { status: "error", label: "offline" });
+      }
+    } catch {
+      state.set("agentRunning", false);
+    }
+  }, 5000);
 });
 
 onUnmounted(() => {

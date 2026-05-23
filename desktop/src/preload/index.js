@@ -1,3 +1,9 @@
+/**
+ * @typedef {import('../renderer/types/acp').ACPInitializeResponse} ACPInitializeResponse
+ * @typedef {import('../renderer/types/acp').ACPSession} ACPSession
+ * @typedef {import('../renderer/types/acp').ACPAgentStatus} ACPAgentStatus
+ */
+
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("opencli", {

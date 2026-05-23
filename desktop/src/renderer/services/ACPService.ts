@@ -6,6 +6,7 @@
 
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import type { ACPSession, ACPInitializeResponse, ACPAgentStatus, ACPNotificationPayload, ACPLogPayload } from "../types/acp";
 
 // 配置 marked 的默认解析选项
 marked.setOptions({
@@ -14,18 +15,18 @@ marked.setOptions({
 });
 
 export interface OpenCLIApi {
-  initialize: () => Promise<any>;
-  newSession: () => Promise<any>;
-  prompt: (sessionId: string, prompt: string, model: string) => Promise<any>;
-  listSessions: () => Promise<any>;
+  initialize: () => Promise<ACPInitializeResponse>;
+  newSession: () => Promise<ACPSession>;
+  prompt: (sessionId: string, prompt: string, model: string) => Promise<void>;
+  listSessions: () => Promise<import("../types/acp").ACPSessionListResponse>;
   loadSession: (id: string) => Promise<any>;
-  deleteSession: (id: string) => Promise<any>;
-  startAgent: () => Promise<any>;
-  agentStatus: () => Promise<any>;
+  deleteSession: (id: string) => Promise<void>;
+  startAgent: () => Promise<boolean>;
+  agentStatus: () => Promise<ACPAgentStatus>;
   storeGet: (key: string) => Promise<any>;
-  storeSet: (key: string, value: any) => Promise<any>;
-  onNotification: (callback: (data: any) => void) => () => void;
-  onLog: (callback: (data: any) => void) => () => void;
+  storeSet: (key: string, value: any) => Promise<boolean>;
+  onNotification: (callback: (data: ACPNotificationPayload) => void) => () => void;
+  onLog: (callback: (data: ACPLogPayload) => void) => () => void;
   onRaw: (callback: (data: any) => void) => () => void;
 }
 
@@ -37,8 +38,8 @@ declare global {
   }
 }
 
-export type ACPNotificationCallback = (data: any) => void;
-export type ACPLogCallback = (data: any) => void;
+export type ACPNotificationCallback = (data: ACPNotificationPayload) => void;
+export type ACPLogCallback = (data: ACPLogPayload) => void;
 
 /**
  * @class ACPService
@@ -73,7 +74,7 @@ export class ACPService {
 
     if (window.opencli) {
       // 监听后端通知（比如流式消息 Chunk、Thought 思考块、Tool 调用状态）
-      window.opencli.onNotification((data: any) => {
+      window.opencli.onNotification((data: ACPNotificationPayload) => {
         this.notificationCallbacks.forEach((cb) => {
           try {
             cb(data);
@@ -84,7 +85,7 @@ export class ACPService {
       });
 
       // 监听后端日志
-      window.opencli.onLog((data: any) => {
+      window.opencli.onLog((data: ACPLogPayload) => {
         console.log(`[agent:${data.level}]`, data.text);
         this.logCallbacks.forEach((cb) => {
           try {
@@ -133,14 +134,14 @@ export class ACPService {
   /**
    * 初始化 ACP 后端代理
    */
-  public async initializeAgent(): Promise<any> {
+  public async initializeAgent(): Promise<ACPInitializeResponse> {
     return await window.opencli.initialize();
   }
 
   /**
    * 新建会话
    */
-  public async newSession(): Promise<any> {
+  public async newSession(): Promise<ACPSession> {
     return await window.opencli.newSession();
   }
 
@@ -150,14 +151,14 @@ export class ACPService {
    * @param prompt 用户输入的 prompt 文本
    * @param model 选中的模型名称
    */
-  public async prompt(sessionId: string, prompt: string, model: string): Promise<any> {
+  public async prompt(sessionId: string, prompt: string, model: string): Promise<void> {
     return await window.opencli.prompt(sessionId, prompt, model);
   }
 
   /**
    * 获取所有本地持久化会话列表
    */
-  public async listSessions(): Promise<any> {
+  public async listSessions(): Promise<import("../types/acp").ACPSessionListResponse> {
     return await window.opencli.listSessions();
   }
 
@@ -173,21 +174,21 @@ export class ACPService {
    * 删除指定 ID 的会话
    * @param sessionId 会话ID
    */
-  public async deleteSession(sessionId: string): Promise<any> {
+  public async deleteSession(sessionId: string): Promise<void> {
     return await window.opencli.deleteSession(sessionId);
   }
 
   /**
    * 启动 ACP 后端代理进程
    */
-  public async startAgent(): Promise<any> {
+  public async startAgent(): Promise<boolean> {
     return await window.opencli.startAgent();
   }
 
   /**
    * 查询后端代理当前的存活状态
    */
-  public async getAgentStatus(): Promise<any> {
+  public async getAgentStatus(): Promise<ACPAgentStatus> {
     return await window.opencli.agentStatus();
   }
 
@@ -201,7 +202,7 @@ export class ACPService {
   /**
    * 将配置存入本地持久化配置库
    */
-  public async storeSet(key: string, value: any): Promise<any> {
+  public async storeSet(key: string, value: any): Promise<boolean> {
     return await window.opencli.storeSet(key, value);
   }
 

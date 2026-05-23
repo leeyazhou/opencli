@@ -4,18 +4,19 @@
     <div
       v-if="isOpen"
       ref="overlayRef"
-      class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 bg-slate-950/60 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 bg-slate-950/80"
       @click="handleOverlayClick"
     >
       <Transition name="scale">
         <!-- 命令面板主体 -->
-        <div
-          class="w-full max-w-xl overflow-hidden border rounded-xl shadow-2xl bg-slate-900/80 border-slate-700/50 backdrop-blur-xl shadow-indigo-500/5"
+        <BaseCard
+          class="w-full max-w-xl overflow-hidden shadow-2xl shadow-primary/5"
+          border-style="glass"
         >
           <!-- 输入搜索区域 -->
-          <div class="flex items-center px-4 py-3 border-b border-slate-700/40">
+          <div class="flex items-center px-4 py-3 border-b border-border/40">
             <svg
-              class="w-5 h-5 mr-3 text-slate-400"
+              class="w-5 h-5 mr-3 text-muted-foreground"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -32,7 +33,7 @@
               ref="inputRef"
               v-model="searchQuery"
               type="text"
-              class="w-full text-base bg-transparent border-none outline-none text-slate-100 placeholder-slate-400 focus:ring-0"
+              class="w-full text-base bg-transparent border-none outline-none text-foreground placeholder-muted-foreground focus:ring-0"
               :placeholder="t('palette.placeholder') || 'Type a command or search...'"
               @keydown="handleKeyDown"
             />
@@ -49,8 +50,8 @@
               :class="[
                 'flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150',
                 activeIndex === index
-                  ? 'bg-indigo-600/30 border-indigo-500/30 text-indigo-200 shadow-inner'
-                  : 'text-slate-300 hover:bg-slate-800/40 hover:text-slate-100'
+                  ? 'bg-primary/20 border-primary/30 text-primary shadow-inner'
+                  : 'text-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground'
               ]"
               @click="executeCommand(cmd)"
               @mouseenter="activeIndex = index"
@@ -60,7 +61,7 @@
                 <div
                   :class="[
                     'flex items-center justify-center w-6 h-6 rounded-md',
-                    activeIndex === index ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'
+                    activeIndex === index ? 'bg-primary/20 text-primary' : 'bg-black/5 dark:bg-white/5 text-muted-foreground'
                   ]"
                 >
                   <component :is="cmd.icon" class="w-3.5 h-3.5" />
@@ -72,7 +73,7 @@
               <!-- 快捷键徽章 -->
               <span
                 v-if="cmd.key"
-                class="px-1.5 py-0.5 text-xs font-mono rounded bg-slate-800 text-slate-400 border border-slate-700/30 group-hover:border-slate-600/50"
+                class="px-1.5 py-0.5 text-xs font-mono rounded bg-black/5 dark:bg-white/5 text-muted-foreground border border-border/30 group-hover:border-border/50"
               >
                 {{ cmd.key }}
               </span>
@@ -81,21 +82,22 @@
             <!-- 空状态 -->
             <div
               v-if="filteredCommands.length === 0"
-              class="py-8 text-center text-slate-500 text-sm"
+              class="py-8 text-center text-muted-foreground text-sm"
             >
               {{ t('palette.no_results') || '未找到匹配的命令' }}
             </div>
           </div>
-        </div>
+        </BaseCard>
       </Transition>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, inject, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, inject, onMounted, nextTick } from "vue";
 import { useI18n } from "../../hooks/useI18n";
 import type { StateService } from "../../services/StateService";
+import BaseCard from "../ui/BaseCard.vue";
 import { 
   PlusCircle, 
   Sidebar, 
@@ -219,7 +221,7 @@ const highlightText = (text: string, query: string): string => {
   if (matchIdx >= 0) {
     return (
       escapeHtml(text.slice(0, matchIdx)) +
-      '<span class="text-indigo-400 font-bold">' +
+      '<span class="text-primary font-bold">' +
       escapeHtml(text.slice(matchIdx, matchIdx + query.length)) +
       "</span>" +
       escapeHtml(text.slice(matchIdx + query.length))

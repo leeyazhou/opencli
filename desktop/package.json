@@ -10,6 +10,9 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "start": "ELECTRON_OVERRIDE_DIST_PATH=./node_modules/electron/dist electron-vite dev",
+    "lint": "eslint 'src/**/*.{ts,vue}'",
+    "format": "prettier --write 'src/**/*.{ts,vue,css,html}'",
+    "type-check": "vue-tsc --noEmit",
     "pack": "electron-vite build && electron-builder --dir",
     "dist": "electron-vite build && electron-builder",
     "dist:mac": "electron-vite build && electron-builder --mac",
@@ -99,21 +102,29 @@
     "dompurify": "^3.3.0",
     "electron-log": "^5.4.0",
     "highlight.js": "^11.11.0",
+    "lucide-vue-next": "^0.359.0",
     "marked": "^17.0.0",
-    "vue": "^3.4.21",
-    "lucide-vue-next": "^0.359.0"
+    "pinia": "^3.0.4",
+    "vue": "^3.4.21"
   },
   "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.7.0",
+    "autoprefixer": "^10.4.18",
     "electron": "^42.2.0",
     "electron-builder": "^26.0.0",
     "electron-context-menu": "^3.6.0",
     "electron-reloader": "^1.2.0",
     "electron-vite": "^5.0.0",
-    "typescript": "^5.3.3",
-    "@types/node": "^20.11.24",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "tailwindcss": "^3.4.1",
+    "eslint": "^10.4.0",
+    "eslint-plugin-vue": "^10.9.1",
     "postcss": "^8.4.35",
-    "autoprefixer": "^10.4.18"
+    "prettier": "^3.8.3",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.59.4",
+    "vue-tsc": "^3.3.1"
   }
 }

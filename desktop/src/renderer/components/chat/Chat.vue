@@ -1,8 +1,8 @@
 <template>
-  <main class="chat-area flex-1 flex flex-col h-full bg-[#06060b]/40 relative overflow-hidden">
+  <main class="chat-area flex-1 flex flex-col h-full bg-transparent dark:bg-background/40 relative overflow-hidden">
     
     <!-- 顶部会话元数据平铺状态条 -->
-    <div class="px-4 py-2 border-b border-white/5 bg-black/10 flex items-center justify-between text-[10px] font-mono text-slate-500">
+    <div class="px-4 py-2 border-b border-white/5 bg-transparent flex items-center justify-between text-[10px] font-mono text-slate-500">
       <div class="flex items-center gap-1.5">
         <HashIcon class="w-3.5 h-3.5" />
         <span>ID:</span>
@@ -27,7 +27,7 @@
       <!-- SPLASH 引导页 -->
       <div 
         v-if="messages.length === 0"
-        class="splash max-w-[550px] mx-auto my-auto text-center flex flex-col items-center gap-5 p-6 rounded-2xl border border-white/5 bg-[#0d0d18]/40 backdrop-blur-md animate-in fade-in zoom-in duration-300"
+        class="splash max-w-[550px] mx-auto my-auto text-center flex flex-col items-center gap-5 p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-panel animate-in fade-in zoom-in duration-300"
       >
         <!-- Antigravity 标志小发光球 -->
         <div class="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
@@ -91,7 +91,7 @@
         <div 
           class="message-body text-xs font-mono text-slate-300 leading-relaxed break-all select-text"
           :class="[
-            msg.type === 'thought' ? 'bg-[#0f0e1c]/45 p-3 rounded-lg border border-purple-500/10 cursor-pointer hover:border-purple-500/20' : '',
+            msg.type === 'thought' ? 'bg-purple-50/50 dark:bg-[#0f0e1c]/45 p-3 rounded-lg border border-purple-500/10 cursor-pointer hover:border-purple-500/20' : '',
             msg.type === 'user' ? 'bg-white/5 p-3 rounded-lg border border-white/5' : '',
             msg.type === 'error' ? 'bg-rose-500/5 p-3 rounded-lg border border-rose-500/15 text-rose-400 font-semibold' : '',
             msg.type === 'system' ? 'text-slate-500 italic p-1' : ''
@@ -132,7 +132,7 @@
     <button 
       v-show="showScrollBottomBtn"
       @click="scrollToBottom"
-      class="absolute bottom-[90px] right-5 p-2 rounded-full border border-white/10 bg-[#0d0d1a]/95 backdrop-blur shadow-2xl text-slate-400 hover:text-white transition-all cursor-pointer animate-in zoom-in-50"
+      class="absolute bottom-[90px] right-5 p-2 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-panel shadow-2xl text-slate-400 hover:text-white transition-all cursor-pointer animate-in zoom-in-50"
       :title="currentLang === 'zh' ? '回到底部' : 'Scroll to bottom'"
     >
       <ArrowDownIcon class="w-4 h-4 animate-bounce" />
@@ -140,7 +140,7 @@
 
     <!-- 底部 Prompt 输入舱 (磨砂玻璃面板) -->
     <div class="p-3 border-t border-white/5 bg-black/10">
-      <div class="flex flex-col gap-2 px-3 py-2 rounded-xl border border-white/10 bg-[#0b0b14]/75 backdrop-blur-md relative z-10">
+      <div class="flex flex-col gap-2 px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-panel relative z-10">
         <!-- 模型选择行 -->
         <div class="flex items-center justify-between">
           <!-- 模型下拉 -->
@@ -157,7 +157,7 @@
             <!-- 下拉菜单 -->
             <div
               v-if="isDropdownOpen"
-              class="absolute bottom-full mb-1.5 left-0 w-[220px] rounded-lg border border-white/10 bg-[#0d0d18]/90 backdrop-blur-lg shadow-xl py-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-150"
+              class="absolute bottom-full mb-1.5 left-0 w-[220px] rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-panel shadow-xl py-1 z-[100] animate-in fade-in slide-in-from-bottom-2 duration-150"
             >
               <div class="px-2.5 py-1.5 text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-wider border-b border-white/5">
                 推理模型

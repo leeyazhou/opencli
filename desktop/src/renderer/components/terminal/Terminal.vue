@@ -1,12 +1,12 @@
 <template>
   <div 
     v-show="terminalPaneOpen"
-    class="terminal-pane fixed bottom-0 left-0 w-full h-[220px] border-t border-white/5 bg-[#06060c]/90 backdrop-blur-lg select-none z-50 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom"
+    class="terminal-pane fixed bottom-0 left-0 w-full h-[220px] border-t border-border bg-panel select-none z-50 flex flex-col transition-all duration-300 animate-in slide-in-from-bottom"
     id="terminalPane"
   >
     <!-- 终端标题栏 -->
-    <div class="flex items-center justify-between px-4 py-1.5 border-b border-white/5 bg-black/30">
-      <div class="flex items-center gap-2 text-xs font-mono font-bold tracking-wider text-slate-300">
+    <div class="flex items-center justify-between px-4 py-1.5 border-b border-border bg-black/5 dark:bg-black/30">
+      <div class="flex items-center gap-2 text-xs font-mono font-bold tracking-wider text-foreground">
         <TerminalIcon class="w-3.5 h-3.5 text-primary" />
         <span class="terminal-title">{{ t('terminal.title') }}</span>
       </div>
@@ -15,7 +15,7 @@
         <!-- 一键清空 -->
         <button 
           @click="clearLogs"
-          class="p-1 hover:bg-white/5 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+          class="p-1 hover:bg-transparent dark:bg-white/5 rounded text-muted-foreground hover:text-white transition-colors cursor-pointer"
           :title="t('terminal.clear_tooltip')"
         >
           <Trash2Icon class="w-3.5 h-3.5" />
@@ -24,7 +24,7 @@
         <!-- 关闭终端抽屉 -->
         <button 
           @click="closeTerminal"
-          class="p-1 hover:bg-white/5 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+          class="p-1 hover:bg-transparent dark:bg-white/5 rounded text-muted-foreground hover:text-white transition-colors cursor-pointer"
           :title="t('terminal.close_tooltip')"
         >
           <XIcon class="w-3.5 h-3.5" />
@@ -46,7 +46,7 @@
         <!-- 正常系统日志样式 -->
         <template v-if="log.type === 'system'">
           <span class="text-primary font-semibold">opencli %</span>
-          <span class="text-slate-300">{{ log.text }}</span>
+          <span class="text-foreground">{{ log.text }}</span>
         </template>
 
         <!-- 工具 Trace 样式 -->
@@ -54,21 +54,21 @@
           <span class="text-primary/80 font-bold flex items-center gap-1">
             <span>⚙️</span> [SYSTEM-TRACE]
           </span>
-          <span class="text-slate-300">
+          <span class="text-foreground">
             Tool call invoked: 
             <span class="text-primary font-semibold">{{ log.toolName }}</span> 
             with status 
-            <span :class="statusClasses[log.status] || 'text-slate-400'">{{ log.status }}</span>
+            <span :class="statusClasses[log.status] || 'text-muted-foreground'">{{ log.status }}</span>
           </span>
         </template>
 
         <!-- ACP 运行日志样式 -->
         <template v-else>
-          <span class="text-slate-500">[{{ log.time }}]</span>
+          <span class="text-muted-foreground">[{{ log.time }}]</span>
           <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wider" :class="badgeClasses[log.type]">
             {{ log.type.toUpperCase() }}
           </span>
-          <span class="text-slate-300 break-all select-text">{{ log.text }}</span>
+          <span class="text-foreground break-all select-text">{{ log.text }}</span>
         </template>
       </div>
     </div>
@@ -109,17 +109,17 @@ const logs = ref<LogEntry[]>([]);
 
 // 日志及状态高亮映射
 const logClasses = {
-  system: "text-slate-300",
-  "tool-trace": "text-slate-300 border-l border-white/5 pl-2 py-0.5",
-  info: "text-slate-300",
-  debug: "text-slate-400/80",
+  system: "text-foreground",
+  "tool-trace": "text-foreground border-l border-border pl-2 py-0.5",
+  info: "text-foreground",
+  debug: "text-muted-foreground/80",
   warn: "text-amber-400/90",
   error: "text-rose-400/90"
 };
 
 const badgeClasses = {
   info: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-  debug: "bg-slate-500/10 text-slate-400 border border-slate-500/20",
+  debug: "bg-slate-500/10 text-muted-foreground border border-slate-500/20",
   warn: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
   error: "bg-rose-500/10 text-rose-400 border border-rose-500/20"
 };

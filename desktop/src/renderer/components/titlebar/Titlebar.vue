@@ -1,12 +1,12 @@
 <template>
-  <header class="titlebar drag-area flex items-center h-[38px] border-b border-white/5 bg-[#0a0a14]/65 backdrop-blur-md select-none relative z-50">
+  <header class="titlebar drag-area flex items-center h-[38px] border-b border-border bg-sidebar select-none relative z-50">
 
     <!-- 左侧：macOS 交通灯占位区 + 左侧栏折叠按钮 + 前进后退 -->
-    <div class="flex items-center gap-1 pl-[80px] flex-shrink-0 no-drag-area">
+    <div class="flex items-center gap-1 pl-[80px] flex-shrink-0 no-drag-area transition-all duration-300">
       <!-- 左侧栏折叠开关（紧跟交通灯右侧） -->
       <button
         @click="toggleSidebar"
-        class="p-1 hover:bg-white/5 rounded text-slate-400 hover:text-white transition-all"
+        class="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-muted-foreground hover:text-foreground transition-all"
         :class="{ 'text-primary bg-primary/10 border border-primary/20': sidebarOpen }"
         :title="t('palette.cmd.toggle_sidebar')"
       >
@@ -14,22 +14,8 @@
       </button>
 
       <!-- 历史导航 前进 / 后退 -->
-      <button
-        @click="navigateBack"
-        :disabled="backStack.length === 0"
-        class="p-1 text-slate-400 hover:text-white disabled:opacity-20 disabled:hover:text-slate-400 transition-colors"
-        :title="t('titlebar.back') || 'Back'"
-      >
-        <ChevronLeftIcon class="w-4 h-4 stroke-[2.5]" />
-      </button>
-      <button
-        @click="navigateForward"
-        :disabled="forwardStack.length === 0"
-        class="p-1 text-slate-400 hover:text-white disabled:opacity-20 disabled:hover:text-slate-400 transition-colors"
-        :title="t('titlebar.forward') || 'Forward'"
-      >
-        <ChevronRightIcon class="w-4 h-4 stroke-[2.5]" />
-      </button>
+      <button @click="navigateBack" :disabled="backStack.length === 0" class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:hover:text-muted-foreground transition-colors" :title="t('titlebar.back') || 'Back'"><ChevronLeftIcon class="w-4 h-4 stroke-[2.5]" /></button>
+      <button @click="navigateForward" :disabled="forwardStack.length === 0" class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:hover:text-muted-foreground transition-colors" :title="t('titlebar.forward') || 'Forward'"><ChevronRightIcon class="w-4 h-4 stroke-[2.5]" /></button>
     </div>
 
     <!-- 中间：可拖拽区域 + 会话标题（绝对居中） -->

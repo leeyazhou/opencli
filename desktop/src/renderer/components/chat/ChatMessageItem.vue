@@ -64,16 +64,15 @@
 </template>
 
 <script setup lang="ts">
-import { SparklesIcon, CpuIcon } from 'lucide-vue-next';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import BaseCard from '../ui/BaseCard.vue';
-
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
+import type { ACPService } from '../../services/ACPService';
 
 const props = defineProps<{
   msg: any;
 }>();
+
+const acp = inject<ACPService>('acpService')!;
 
 const typeLabels: Record<string, string> = {
   user: "You",
@@ -92,11 +91,11 @@ const statusClasses: Record<string, string> = {
 
 const renderedThought = computed(() => {
   if (props.msg.type !== 'thought') return '';
-  return DOMPurify.sanitize(marked.parse(props.msg.text || '') as string);
+  return acp.renderMarkdown(props.msg.text || '');
 });
 
 const renderedText = computed(() => {
   if (props.msg.type === 'thought' || props.msg.type === 'tool') return '';
-  return DOMPurify.sanitize(marked.parse(props.msg.text || '') as string);
+  return acp.renderMarkdown(props.msg.text || '');
 });
 </script>

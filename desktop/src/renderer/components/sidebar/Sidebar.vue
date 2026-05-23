@@ -127,6 +127,7 @@ const sidebarOpen = ref(true);
 const sessions = ref<any[]>([]);
 const currentSessionId = ref<string | null>(null);
 const projectCwd = ref("/");
+const currentTheme = ref("");
 
 // 新建会话
 const requestNewSession = () => {
@@ -223,13 +224,17 @@ onMounted(async () => {
   );
 
   // 监听重新刷新列表与 CWD 的广播
-  state.on("requestRefreshSessionList", async () => {
-    await loadSessionList();
-  });
+  unsubscribers.push(
+    state.on("requestRefreshSessionList", async () => {
+      await loadSessionList();
+    })
+  );
 
-  state.on("updateProjectCwd", (cwd: string) => {
-    projectCwd.value = cwd;
-  });
+  unsubscribers.push(
+    state.on("updateProjectCwd", (cwd: string) => {
+      projectCwd.value = cwd;
+    })
+  );
 });
 
 onUnmounted(() => {

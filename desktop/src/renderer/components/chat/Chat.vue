@@ -203,7 +203,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, onMounted, onUnmounted, computed, nextTick } from "vue";
+import { ref, shallowRef, triggerRef, inject, onMounted, onUnmounted, computed, nextTick } from "vue";
 import { useI18n } from "../../hooks/useI18n";
 import type { StateService } from "../../services/StateService";
 import type { ACPService } from "../../services/ACPService";
@@ -262,7 +262,7 @@ interface Message {
   expanded?: boolean;
 }
 
-const messages = ref<Message[]>([]);
+const messages = shallowRef<Message[]>([]);
 const messagesCount = computed(() => messages.value.length);
 
 const typeLabels = {
@@ -336,6 +336,7 @@ const sendMessage = async () => {
     type: "user",
     text
   });
+  triggerRef(messages);
 
   promptInputText.value = "";
   autoResizeInput();
@@ -358,6 +359,7 @@ const sendMessage = async () => {
           type: "assistant",
           text: responseText
         });
+        triggerRef(messages);
         scrollToBottom();
       }
     }
@@ -377,6 +379,7 @@ const addSystemMessage = (text: string) => {
     type: "system",
     text
   });
+  triggerRef(messages);
   scrollToBottom();
 };
 
@@ -385,6 +388,7 @@ const addErrorMessage = (text: string) => {
     type: "error",
     text
   });
+  triggerRef(messages);
   scrollToBottom();
 };
 
@@ -423,6 +427,7 @@ const switchSession = async (sessionId: string) => {
         }
       });
     }
+    triggerRef(messages);
     scrollToBottom();
     // 刷新侧边
     state.emit("requestRefreshSessionList");
@@ -459,6 +464,7 @@ const createNewSession = async () => {
     state.emit("updateProjectCwd", result.cwd || "/");
 
     messages.value = [];
+    triggerRef(messages);
     promptInputText.value = "";
     autoResizeInput();
     state.emit("requestRefreshSessionList");
@@ -472,9 +478,18 @@ const handleSessionUpdate = (data: any) => {
   const update = data.update || data;
   const kind = update.update || update.kind || "";
 
+  // 记录追加前的滚动位置
+  const wasNearBottom = isNearBottom();
+
   if (kind === "agent_message_chunk" || kind === "AgentMessageChunk") {
     const text = extractText(update.content || update);
     if (!text) return;
+
+    // 当普通回答开始时，自动折叠前置的思考过程
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && lastMsg.type === "thought" && lastMsg.expanded) {
+      lastMsg.expanded = false;
+    }
 
     const last = messages.value[messages.value.length - 1];
     if (last && last.type === "assistant") {
@@ -485,25 +500,26 @@ const handleSessionUpdate = (data: any) => {
         text
       });
     }
-    scrollToBottom();
+    triggerRef(messages);
+    
+    if (wasNearBottom) scrollToBottom();
   } else if (kind === "agent_thought_chunk" || kind === "AgentThoughtChunk") {
     const text = extractText(update.content || update);
     if (!text) return;
 
-    messages.value.push({
-      type: "thought",
-      text,
-      expanded: true
-    });
-    
-    // 3 秒后自动收拢
-    const currentIdx = messages.value.length - 1;
-    setTimeout(() => {
-      if (messages.value[currentIdx]) {
-        messages.value[currentIdx].expanded = false;
-      }
-    }, 3000);
-    scrollToBottom();
+    const last = messages.value[messages.value.length - 1];
+    if (last && last.type === "thought") {
+      last.text += text;
+    } else {
+      messages.value.push({
+        type: "thought",
+        text,
+        expanded: true
+      });
+    }
+    triggerRef(messages);
+
+    if (wasNearBottom) scrollToBottom();
   } else if (kind === "tool_call" || kind === "ToolCall") {
     const toolName = update.name || update.tool_name || "tool";
     const status = update.status || "running";
@@ -519,7 +535,9 @@ const handleSessionUpdate = (data: any) => {
         status
       });
     }
-    scrollToBottom();
+    triggerRef(messages);
+    
+    if (wasNearBottom) scrollToBottom();
   }
 };
 
@@ -549,21 +567,29 @@ onMounted(() => {
   acp.subscribeNotification(handleSessionUpdate);
 
   // 4. 绑定 Session 各种信号
-  state.on("requestSwitchSession", (id: string) => {
-    switchSession(id);
-  });
+  unsubscribers.push(
+    state.on("requestSwitchSession", (id: string) => {
+      switchSession(id);
+    })
+  );
 
-  state.on("requestNewSession", () => {
-    createNewSession();
-  });
+  unsubscribers.push(
+    state.on("requestNewSession", () => {
+      createNewSession();
+    })
+  );
 
-  state.on("requestDeleteSession", (id: string) => {
-    deleteSession(id);
-  });
+  unsubscribers.push(
+    state.on("requestDeleteSession", (id: string) => {
+      deleteSession(id);
+    })
+  );
 
-  state.on("addSystemMessage", (text: string) => {
-    addSystemMessage(text);
-  });
+  unsubscribers.push(
+    state.on("addSystemMessage", (text: string) => {
+      addSystemMessage(text);
+    })
+  );
 
   // 点击外部关闭模型下拉
   document.addEventListener("click", closeDropdown);
